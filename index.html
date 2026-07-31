@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>디지몬 타워 디펜스</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ── 타이틀 / 스테이지 선택 ── -->
+  <div class="screen" id="screen-stage">
+    <div class="screen-inner">
+      <h1 class="title">디지몬 <em>타워 디펜스</em></h1>
+      <p class="subtitle">진화가 곧 업그레이드 — 키워서 진화시키는 타워 디펜스</p>
+
+      <div id="resume-box"></div>
+
+      <h2 class="screen-h">스테이지</h2>
+      <div class="stage-grid" id="stage-grid"></div>
+
+      <div class="screen-foot">
+        <span class="fine" id="progress-line">—</span>
+        <button class="gbtn tiny ghost" id="btn-reset">진행도 초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 게임 ── -->
+  <div class="app">
+    <header class="hud">
+      <button class="gbtn tiny ghost" id="btn-menu">☰ 스테이지</button>
+
+      <div class="hud-stage">
+        <b id="hud-stage-name">—</b>
+        <span class="tag" id="hud-stage-tag">—</span>
+      </div>
+
+      <div class="hud-chips">
+        <div class="chip wave"><i>🌊</i><b id="chip-wave">—</b></div>
+        <div class="chip bits"><i>◈</i><b id="chip-bits">—</b></div>
+        <div class="chip life"><i>♥</i><b id="chip-life">—</b></div>
+        <div class="chip item"><i id="ico-chips"></i><b id="chip-chips">0</b></div>
+        <div class="chip item"><i id="ico-disks"></i><b id="chip-disks">0</b></div>
+        <div class="chip item"><i id="ico-cores"></i><b id="chip-cores">0</b></div>
+        <div class="chip aug"><i>✦</i><b id="chip-aug">0</b></div>
+        <div class="chip rent"><i>🏠</i><b id="chip-rent">—</b></div>
+      </div>
+
+      <div class="hud-actions">
+        <button class="gbtn ghost" id="btn-speed">1×</button>
+        <button class="gbtn go" id="btn-start">웨이브 시작</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="stage-wrap">
+        <div class="board-frame">
+          <canvas id="board" width="880" height="528"></canvas>
+        </div>
+        <div class="hint" id="hint">소환(Q)으로 디지몬을 뽑고, 잔디 위 빈 칸을 클릭해 배치하세요.</div>
+      </section>
+
+      <aside class="side">
+        <nav class="tabs">
+          <button class="tab on" data-tab="build">배치</button>
+          <button class="tab" data-tab="unit">유닛</button>
+          <button class="tab" data-tab="info">정보</button>
+        </nav>
+
+        <div class="tabpane" id="pane-build">
+          <div class="panel">
+            <h2>다음 웨이브</h2>
+            <div id="wave-preview"></div>
+          </div>
+          <div class="panel summon-panel">
+            <h2>소환</h2>
+            <div id="summon-box"></div>
+            <details class="odds">
+              <summary>등장 확률</summary>
+              <div id="summon-odds"></div>
+            </details>
+          </div>
+          <div class="panel">
+            <h2>디지멘탈 · 설치물</h2>
+            <div class="shop one" id="props"></div>
+            <p class="fine">공격하지 않습니다. 인접한 8칸의 디지몬만 강화합니다.</p>
+          </div>
+          <div class="panel">
+            <h2>교환소 · 비트 → 진화 아이템</h2>
+            <div class="shop three" id="exchange"></div>
+            <p class="fine">살 때마다 가격이 오릅니다. 남는 비트를 진화로 바꾸는 유일한 창구.</p>
+          </div>
+        </div>
+
+        <div class="tabpane hidden" id="pane-unit">
+          <div class="panel">
+            <h2>선택한 디지몬</h2>
+            <div id="selected-body" class="muted">필드의 디지몬을 클릭하세요.</div>
+          </div>
+        </div>
+
+        <div class="tabpane hidden" id="pane-info">
+          <div class="panel">
+            <h2>보유 증강</h2>
+            <div id="owned-aug" class="muted">아직 없음</div>
+          </div>
+          <div class="panel">
+            <h2>인접 효과 · 8방향</h2>
+            <div id="adj-rules"></div>
+            <p class="fine">필드 전체 수를 세는 종족 시너지와 별개로, 바로 옆 8칸에만 적용됩니다.</p>
+          </div>
+          <div class="panel">
+            <h2>종족 시너지</h2>
+            <div id="synergy" class="muted">배치된 디지몬 없음</div>
+          </div>
+          <div class="panel">
+            <h2>속성 상성</h2>
+            <div class="chart">
+              <span class="attr vaccine">✚ 백신</span><span class="arrow">▶</span>
+              <span class="attr virus">☣ 바이러스</span><span class="arrow">▶</span>
+              <span class="attr data">◆ 데이터</span><span class="arrow">▶</span>
+              <span class="attr vaccine">백신</span>
+            </div>
+            <p class="fine">화살표 방향 = 유리 (피해 ×1.5) / 역방향 = 불리 (×0.6)</p>
+          </div>
+          <div class="panel">
+            <h2>기록</h2>
+            <div id="log" class="log muted">—</div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ── 튜토리얼 코치 ── -->
+  <div class="coach hidden" id="coach">
+    <div class="coach-head">
+      <span class="coach-step" id="coach-step">—</span>
+      <b id="coach-title">—</b>
+    </div>
+    <p id="coach-text">—</p>
+    <div class="coach-foot">
+      <button class="gbtn tiny ghost" id="coach-skip">건너뛰기</button>
+      <span class="coach-wait" id="coach-wait"></span>
+      <button class="gbtn tiny go" id="coach-next">다음 ▸</button>
+    </div>
+  </div>
+
+  <!-- ── 증강 선택 ── -->
+  <div class="overlay hidden" id="aug-overlay">
+    <div class="aug-box">
+      <div class="dialog-ribbon">웨이브 <span id="aug-wave">—</span> 증강</div>
+      <h2>증강을 하나 고르세요</h2>
+      <p class="aug-sub">이번 판 내내 유지됩니다. 고르기 전에는 다음 웨이브가 시작되지 않습니다.</p>
+      <div class="aug-grid" id="aug-grid"></div>
+      <div class="aug-foot">
+        <button class="gbtn ghost" id="btn-reroll">🎲 리롤 <b id="aug-rerolls">2</b>회 남음</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 결과 ── -->
+  <div class="overlay hidden" id="overlay">
+    <div class="dialog">
+      <div class="dialog-ribbon" id="ov-ribbon">—</div>
+      <h2 id="ov-title">—</h2>
+      <div class="result-grid" id="ov-stats"></div>
+      <p id="ov-body">—</p>
+      <div class="dialog-actions">
+        <button class="gbtn go" id="btn-restart">다시 도전</button>
+        <button class="gbtn ghost" id="btn-tomenu">스테이지 선택</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

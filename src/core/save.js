@@ -1,0 +1,117 @@
+// ─────────────────────────────────────────────────────────────
+// save.js — localStorage 저장 (진행도 + 진행 중인 판)
+//
+// 두 가지를 따로 저장한다.
+//  1) 진행도(meta) : 스테이지별 최고 웨이브·클리어 여부·설정. 절대 지워지지 않는다.
+//  2) 진행 중인 판(run) : 이어하기용 스냅샷. 판이 끝나면 지운다.
+//
+// 저장 실패(사생활 보호 모드 등)해도 게임은 그대로 돌아가야 하므로 전부 try로 감싼다.
+// ─────────────────────────────────────────────────────────────
+import { STAGES, stageById } from '../data/stages.js';
+
+const META_KEY = 'digimontd_meta_v1';
+const RUN_KEY = 'digimontd_run_v1';
+const LEGACY_BEST = 'digimontd_best_wave';
+
+const emptyMeta = () => ({ v: 1, stages: {}, settings: { speed: 1 } });
+
+function read(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function write(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch { return false; }
+}
+
+// ── 진행도 ──
+let meta = null;
+
+export function loadMeta() {
+  if (meta) return meta;
+  meta = read(META_KEY) || emptyMeta();
+  if (!meta.stages) meta.stages = {};
+  if (!meta.settings) meta.settings = { speed: 1 };
+
+  // 구버전(단일 최고 기록)에서 넘어온 값을 1스테이지 기록으로 옮긴다
+  try {
+    const legacy = parseInt(localStorage.getItem(LEGACY_BEST) || '0', 10);
+    if (legacy > 0) {
+      const s = stageRecord(STAGES[0].id);
+      if (legacy > s.best) s.best = legacy;
+      localStorage.removeItem(LEGACY_BEST);
+      write(META_KEY, meta);
+    }
+  } catch { /* ignore */ }
+
+  return meta;
+}
+
+export function stageRecord(stageId) {
+  const m = loadMeta();
+  if (!m.stages[stageId]) m.stages[stageId] = { best: 0, cleared: false, runs: 0 };
+  return m.stages[stageId];
+}
+
+/** 판이 끝났을 때 기록 갱신. 최고 기록을 새로 세웠으면 true */
+export function recordRun(stageId, reachedWave, won) {
+  const rec = stageRecord(stageId);
+  rec.runs++;
+  if (won) rec.cleared = true;
+  const isBest = reachedWave > rec.best;
+  if (isBest) rec.best = reachedWave;
+  write(META_KEY, meta);
+  return isBest;
+}
+
+export const isTutorialDone = () => !!loadMeta().settings.tutorialDone;
+export function setTutorialDone(v = true) { setSetting('tutorialDone', v); }
+
+export function setSetting(key, value) {
+  const m = loadMeta();
+  m.settings[key] = value;
+  write(META_KEY, m);
+}
+
+export function getSetting(key, fallback) {
+  const v = loadMeta().settings[key];
+  return v === undefined ? fallback : v;
+}
+
+/** 해금 여부 + 사유 — UI가 "무엇을 해야 열리는지"를 그대로 보여줄 수 있게 함께 돌려준다 */
+export function unlockState(stage) {
+  if (!stage.unlock) return { unlocked: true, reason: '' };
+  const need = stage.unlock;
+  const rec = stageRecord(need.stage);
+  const from = stageById(need.stage);
+  if (rec.cleared || rec.best >= need.wave) return { unlocked: true, reason: '' };
+  return {
+    unlocked: false,
+    reason: `${from.name} ${need.wave}웨이브 도달 시 해금 (현재 ${rec.best})`,
+  };
+}
+
+export function resetProgress() {
+  meta = emptyMeta();
+  write(META_KEY, meta);
+  clearRun();
+}
+
+// ── 진행 중인 판 ──
+export function saveRun(snapshot) {
+  return write(RUN_KEY, snapshot);
+}
+
+export function loadRun() {
+  const run = read(RUN_KEY);
+  if (!run || run.v !== 1) return null;
+  if (!STAGES.some((s) => s.id === run.stageId)) return null;
+  return run;
+}
+
+export function clearRun() {
+  try { localStorage.removeItem(RUN_KEY); } catch { /* ignore */ }
+}

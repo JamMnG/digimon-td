@@ -1,0 +1,11 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+
+# 이 프로젝트는 빌드 과정이 없다 — 소스가 곧 배포물이다.
