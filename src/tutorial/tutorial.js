@@ -67,15 +67,15 @@ export const STEPS = [
   {
     id: 'adjacency',
     title: '5. 인접 효과 — 8방향',
-    text: '포켓몬은 <b>바로 옆 8칸</b>에 무엇이 있느냐로 강해집니다. 드래곤 타입(파이리)은 <b>뭉칠수록</b> 강해집니다. '
+    text: '포켓몬은 <b>바로 옆 8칸</b>에 무엇이 있느냐로 강해집니다. 무리 특성(파이리)은 <b>뭉칠수록</b> 강해집니다. '
       + '연습용 파이리를 대기시켜 뒀습니다. 반짝이는 칸에 붙여 놓아보세요. 배치 전에 커서를 올리면 영향권 8칸이 미리 밝아집니다.',
     tab: 'build', focus: '.summon-panel', tiles: [[5, 4]],
     enter: (s) => {
       grant(s, { bits: 200 });
       if (!s.pending) s.pending = { id: 'charmander', grade: 'common', paid: 0 };
     },
-    check: (s) => towersOnly(s).some((t) => t.def.field === 'DRAGON'
-      && (s.adjacency[t.uid]?.notes || []).some((x) => x.startsWith(ADJ_RULES.DRAGON.label))),
+    check: (s) => towersOnly(s).some((t) => t.def.field === 'SWARM'
+      && (s.adjacency[t.uid]?.notes || []).some((x) => x.startsWith(ADJ_RULES.SWARM.label))),
   },
   {
     id: 'adjread',

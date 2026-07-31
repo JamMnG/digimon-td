@@ -8,11 +8,11 @@ import { FIELD } from '../data/monsters.js';
 
 // 각 타입: 임계치별 효과. 값은 배율 가산(0.12 = +12%) 또는 절대 가산.
 export const SYNERGY_DEFS = {
-  DRAGON:  { stat: 'atk',    label: '공격력',     steps: [[2, 0.12], [4, 0.30]], kind: 'mult' },
-  FIGHT:   { stat: 'rate',   label: '공격 속도',  steps: [[2, 0.12], [4, 0.28]], kind: 'mult' },
-  PSYCHIC:   { stat: 'range',  label: '사거리',     steps: [[2, 0.10], [4, 0.22]], kind: 'mult' },
-  GHOST:   { stat: 'crit',   label: '치명타 확률', steps: [[2, 0.08], [4, 0.18]], kind: 'add' },
-  STEEL: { stat: 'splash', label: '광역·관통',  steps: [[2, 0.15], [4, 0.34]], kind: 'mult' },
+  SWARM: { stat: 'atk',    label: '공격력',      steps: [[2, 0.12], [4, 0.30]], kind: 'mult' },
+  COACH: { stat: 'rate',   label: '공격 속도',   steps: [[2, 0.12], [4, 0.28]], kind: 'mult' },
+  FOCUS: { stat: 'range',  label: '사거리',      steps: [[2, 0.10], [4, 0.22]], kind: 'mult' },
+  LONE:  { stat: 'crit',   label: '치명타 확률', steps: [[2, 0.08], [4, 0.18]], kind: 'add' },
+  LINK:  { stat: 'splash', label: '광역·관통',   steps: [[2, 0.15], [4, 0.34]], kind: 'mult' },
 };
 
 /** 배치된 타워 배열 → { FIELD_ID: { count, threshold, value, label } } */

@@ -621,6 +621,22 @@ function drawTutorialTiles(ctx, state, now) {
  * 참고작(Luck be a Landlord)에서 배치가 곧 퍼즐이 되는 이유가 이 가시성이다.
  */
 function drawAdjacencyLinks(ctx, state, hover, now) {
+  // 이동 중에는 놓을 수 있는 빈 칸을 전부 밝혀 준다 — 어디로 옮길지 한눈에 보여야 한다
+  if (state.movingUid != null) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    ctx.save();
+    ctx.fillStyle = `rgba(120, 230, 160, ${0.14 + 0.1 * pulse})`;
+    ctx.strokeStyle = `rgba(150, 255, 190, ${0.45 + 0.3 * pulse})`;
+    ctx.lineWidth = 2;
+    for (const k of state.path.buildTiles) {
+      if (state.occupied.has(k)) continue;
+      const c = k % cols, r = Math.floor(k / cols);
+      ctx.fillRect(c * TILE + 4, r * TILE + 4, TILE - 8, TILE - 8);
+      ctx.strokeRect(c * TILE + 4.5, r * TILE + 4.5, TILE - 9, TILE - 9);
+    }
+    ctx.restore();
+  }
+
   // 배치 중에는 "지금 놓으려는 자리"의 영향권을 보여준다 — 놓기 전에 계획할 수 있어야 한다
   const placing = state.buildMonsterId && state.buildDef && hover && hover.buildable
     ? { c: hover.c, r: hover.r, x: hover.c * TILE + TILE / 2, y: hover.r * TILE + TILE / 2, def: state.buildDef }
@@ -810,10 +826,11 @@ function drawEnemies(ctx, state, now) {
       ctx.setLineDash([]);
     }
 
-    // 속성 마크
+    // 타입 마크 — 복합 타입이면 둘 다 찍는다
     ctx.textAlign = 'center';
-    outlinedText(ctx, ATTR[e.attr].mark, ex, cy - r * 1.6 - 12,
-      'bold 11px sans-serif', ATTR[e.attr].color, 2.5);
+    const marks = e.attr.map((a) => ATTR[a].mark).join('');
+    outlinedText(ctx, marks, ex, cy - r * 1.6 - 12,
+      'bold 11px sans-serif', ATTR[e.attr[0]].color, 2.5);
 
     // 체력바 — 굵은 외곽선으로 배경과 분리
     const w = Math.max(r * 2.6, 24);

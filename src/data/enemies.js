@@ -12,51 +12,66 @@
 //   shape — worm | brute | beast | flyer | shell | mech | chaos
 // ─────────────────────────────────────────────────────────────
 
+// attr 은 원작 타입 그대로다. 복합 타입이면 배열이고, 상성은 두 배율을 곱한다
+// — 물▶꼬마돌(바위/땅) 4배 같은 원작의 상징적인 장면이 그대로 나온다.
 export const ENEMIES = {
   rattata: {
-    name: '꼬렛', cls: 'normal', attr: 'GRASS', color: '#9f6fb0',
+    name: '꼬렛', cls: 'normal', attr: ['NORMAL'], color: '#9f6fb0',
     hp: 62, speed: 46, armor: 0, bounty: 6, radius: 9,
     shape: 'beast', parts: { ears: 'point', tail: 'thin', claws: true },
   },
   pidgey: {
-    name: '구구', cls: 'normal', attr: 'FIRE', color: '#c9a86a',
+    name: '구구', cls: 'normal', attr: ['NORMAL', 'FLYING'], color: '#c9a86a',
     hp: 88, speed: 42, armor: 1, bounty: 8, radius: 10,
     shape: 'flyer', parts: { wing: 'feather', crest: true },
   },
   ekans: {
-    name: '아보', cls: 'fast', attr: 'GRASS', color: '#8f6fc4',
+    name: '아보', cls: 'fast', attr: ['POISON'], color: '#8f6fc4',
     hp: 76, speed: 82, armor: 0, bounty: 8, radius: 9,
     shape: 'worm', parts: { segs: 4, antenna: false, stripe: '#4a2f6a' },
   },
   zubat: {
-    name: '주뱃', cls: 'fast', attr: 'GRASS', color: '#6f8fd0',
+    name: '주뱃', cls: 'fast', attr: ['POISON', 'FLYING'], color: '#6f8fd0',
     hp: 104, speed: 74, armor: 1, bounty: 10, radius: 9,
     shape: 'flyer', parts: { wing: 'insect', pincer: false },
   },
+  // 불꽃·고스트가 때릴 상대가 없으면 그 타입 유닛이 계속 놀게 된다.
+  // 나시(풀/에스퍼)가 그 둘을 한 번에 풀어 준다 — 풀은 불꽃에, 에스퍼는 고스트에 약하다.
+  // 독 타입 적이 이미 넷이라 여기까지 독을 붙이면 페어리가 설 자리가 없어진다.
+  exeggutor: {
+    name: '나시', cls: 'tank', attr: ['GRASS', 'PSYCHIC'], color: '#d8b048',
+    hp: 300, speed: 30, armor: 5, bounty: 18, radius: 13,
+    shape: 'brute', parts: { arms: true, belly: '#7fbf4a' },
+  },
+  drowzee: {
+    name: '슬리프', cls: 'normal', attr: ['PSYCHIC'], color: '#d8c078',
+    hp: 260, speed: 36, armor: 3, bounty: 17, radius: 12,
+    shape: 'brute', parts: { arms: true, belly: '#6f5a3a' },
+  },
   geodude: {
-    name: '꼬마돌', cls: 'tank', attr: 'FIRE', color: '#9a8e7e',
+    name: '꼬마돌', cls: 'tank', attr: ['ROCK', 'GROUND'], color: '#9a8e7e',
     hp: 240, speed: 28, armor: 4, bounty: 14, radius: 12,
     shape: 'shell', parts: { spikes: 3, shell: '#6f6558' },
   },
   golbat: {
-    name: '골뱃', cls: 'fast', attr: 'GRASS', color: '#4f6fb8',
+    name: '골뱃', cls: 'fast', attr: ['POISON', 'FLYING'], color: '#4f6fb8',
     hp: 218, speed: 90, armor: 2, bounty: 16, radius: 11,
     shape: 'flyer', parts: { wing: 'membrane', pincer: false },
   },
   weezing: {
-    name: '또도가스', cls: 'tank', attr: 'GRASS', color: '#8a7fa8',
+    name: '또도가스', cls: 'tank', attr: ['POISON'], color: '#8a7fa8',
     hp: 400, speed: 26, armor: 7, bounty: 21, radius: 14,
     shape: 'chaos', parts: { claws: 2, core: '#5f5578' },
   },
   onix: {
-    name: '롱스톤', cls: 'tank', attr: 'FIRE', color: '#8b98a8',
+    name: '롱스톤', cls: 'tank', attr: ['ROCK', 'GROUND'], color: '#8b98a8',
     hp: 560, speed: 24, armor: 10, bounty: 26, radius: 15,
     shape: 'worm', parts: { segs: 6, stripe: '#5d6875' },
   },
 
   // ── 에이스 (정예) ──
   houndoom: {
-    name: '헬가', cls: 'elite', attr: 'FIRE', color: '#4a4048',
+    name: '헬가', cls: 'elite', attr: ['DARK', 'FIRE'], color: '#4a4048',
     hp: 900, speed: 38, armor: 7, bounty: 46, radius: 15,
     shape: 'beast', parts: { ears: 'long', tail: 'tuft', claws: true },
   },
@@ -70,22 +85,22 @@ export const ENEMIES = {
   //   20~60이라 방어 10이면 실피해가 30~50%씩 증발한다. 체력만 줄이면
   //   "연사형은 되고 한방형은 안 되는" 왜곡이 남으므로 방어부터 손봤다.
   gyarados: {
-    name: '검은 갸라도스', cls: 'boss', attr: 'WATER', color: '#3f4f7a',
+    name: '검은 갸라도스', cls: 'boss', attr: ['WATER', 'FLYING'], color: '#3f4f7a',
     hp: 6600, speed: 30, armor: 3, bounty: 320, radius: 21,
     shape: 'worm', parts: { segs: 5, stripe: '#26334f' },
   },
   tyranitar: {
-    name: '마기라스', cls: 'boss', attr: 'GRASS', color: '#7fa05f',
+    name: '마기라스', cls: 'boss', attr: ['ROCK', 'DARK'], color: '#7fa05f',
     hp: 15000, speed: 24, armor: 8, bounty: 700, radius: 24,
     shape: 'brute', parts: { tusks: true, arms: true, belly: '#d8e0a8' },
   },
   mewtwo: {
-    name: '뮤츠', cls: 'boss', attr: 'FIRE', color: '#c2b8d8',
+    name: '뮤츠', cls: 'boss', attr: ['PSYCHIC'], color: '#c2b8d8',
     hp: 30000, speed: 22, armor: 12, bounty: 1500, radius: 26,
     shape: 'chaos', parts: { claws: 2, core: '#a86fd0' },
   },
   kyurem: {
-    name: '큐레무', cls: 'boss', attr: 'WATER', color: '#9fc8dd',
+    name: '큐레무', cls: 'boss', attr: ['DRAGON', 'ICE'], color: '#9fc8dd',
     hp: 52000, speed: 20, armor: 16, bounty: 2600, radius: 28,
     shape: 'chaos', parts: { claws: 4, core: '#5ad1ff' },
   },
@@ -97,8 +112,10 @@ const POOL = [
   [2,  'pidgey'],
   [4,  'ekans'],
   [6,  'zubat'],
+  [8,  'drowzee'],
   [9,  'geodude'],
   [13, 'golbat'],
+  [15, 'exeggutor'],
   [17, 'weezing'],
   [22, 'onix'],
 ];

@@ -60,7 +60,8 @@ const FAIR = [];
 
 const HINT_DEFAULT = '몬스터볼(Q)을 던져 포켓몬을 잡고, 풀숲 위 빈 칸을 클릭해 배치하세요.';
 
-const ui = initUI(state, {
+// 단축키에서도 같은 동작을 부르므로 이름을 붙여 둔다
+const handlers = {
   onPickShop: (id) => {
     state.buildMonsterId = state.buildMonsterId === id ? null : id;
     state.buildDef = state.buildMonsterId ? defOf(state.buildMonsterId) : null;
@@ -100,8 +101,8 @@ const ui = initUI(state, {
     ui.invalidate();
   },
 
-  onStartWave: () => {
-    if (stage.beginWave(state)) ui.invalidate();
+  onStartWave: (opts) => {
+    if (stage.beginWave(state, opts)) ui.invalidate();
   },
 
   onToggleSpeed: () => {
@@ -280,7 +281,24 @@ const ui = initUI(state, {
 
   onVsBan: (id) => versus.toggleBan(id),
   onVsBanConfirm: () => versus.confirmBans(),
-});
+
+  /** 선택한 유닛을 들었다 놓기 — 다음 빈 칸 클릭이 목적지가 된다 */
+  onMoveStart: () => {
+    const t = state.selectedTower();
+    if (!t) { ui.setHint('옮길 유닛을 먼저 클릭하세요.', true); ui.invalidate(); return; }
+    if (state.phase !== PHASE.PREP) {
+      ui.setHint('웨이브 중에는 옮길 수 없습니다. 웨이브 사이에만 재배치할 수 있습니다.', true);
+      ui.invalidate(); return;
+    }
+    state.movingUid = state.movingUid === t.uid ? null : t.uid;
+    ui.setHint(state.movingUid
+      ? `${t.def.name} 이동 — 옮길 빈 칸을 클릭하세요 (Esc 취소)`
+      : '이동을 취소했습니다.');
+    ui.invalidate();
+  },
+};
+
+const ui = initUI(state, handlers);
 
 // 로비 상태가 바뀔 때마다 스테이지 화면을 다시 그린다.
 // 참가자 쪽은 방장이 '대결 시작'을 누르는 순간 begin 신호로 같이 들어간다.
@@ -384,6 +402,23 @@ canvas.addEventListener('click', (ev) => {
   const p = canvasPos(ev);
   const { c, r } = pxToTile(p.x, p.y);
 
+  // 이동 대기 중이면 이 클릭이 곧 목적지다
+  if (state.movingUid != null) {
+    const res = stage.moveTower(state, state.movingUid, p.x, p.y);
+    if (typeof res === 'string') {
+      ui.setHint(res, true);
+    } else {
+      if (res) {
+        state.pushLog(`${res.def.name} 이동`);
+        ui.setHint(`${res.def.name} 이동 완료. 인접 효과가 다시 계산되었습니다.`);
+        flushSave();
+      }
+      state.movingUid = null;
+    }
+    ui.invalidate();
+    return;
+  }
+
   const existing = state.towerAt(c, r);
   if (existing) {
     // 배치 대기 중에 찬 칸을 누른 건 오조작이다 — 탭을 옮기지 않고 알려만 준다
@@ -425,15 +460,27 @@ canvas.addEventListener('click', (ev) => {
 });
 
 window.addEventListener('keydown', (ev) => {
+  // 입력칸(방 코드·고스트 코드)에 타이핑 중이면 단축키가 가로채면 안 된다
+  const tag = (ev.target && ev.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
   if (ev.key === 'Escape') {
     if (!state.pending) { state.buildMonsterId = null; state.buildDef = null; }
     state.selectedTowerUid = null;
+    state.movingUid = null;
     ui.invalidate();
   } else if (ev.code === 'Space') {
     ev.preventDefault();
     if (stage.beginWave(state)) ui.invalidate();
   } else if (ev.key === 'q' || ev.key === 'Q') {
     ui.click('#btn-summon');
+  } else if (ev.key === 's' || ev.key === 'S') {
+    // 방생 — 하나씩 클릭해서 파는 게 번거롭다는 피드백
+    handlers.onSell();
+  } else if (ev.key === 'e' || ev.key === 'E') {
+    ui.click('#btn-evolve');                  // 첫 진화 선택지로 바로
+  } else if (ev.key === 'm' || ev.key === 'M') {
+    handlers.onMoveStart();
   }
 });
 

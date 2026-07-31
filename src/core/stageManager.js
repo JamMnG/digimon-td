@@ -15,7 +15,7 @@ import * as spawner from '../enemy/enemySpawner.js';
 import * as combat from '../combat/combatSystem.js';
 import * as eco from '../economy/economyManager.js';
 import { MONSTERS } from '../data/monsters.js';
-import { pxToTile, tileToPx, isBuildable } from '../grid/pathGrid.js';
+import { pxToTile, tileToPx, isBuildable, tileKey } from '../grid/pathGrid.js';
 
 /** 특성이 반영된 배치 비용 (도구는 할인 대상이 아니다) */
 export function towerCost(state, def) {
@@ -87,7 +87,38 @@ export function placeTower(state, monsterId, px, py) {
   return t;
 }
 
-export function beginWave(state) {
+/**
+ * 이미 놓은 유닛을 다른 빈 칸으로 옮긴다.
+ *
+ * 배치가 이 게임의 퍼즐이라 아무 때나 옮기면 긴장이 사라진다. 그래서
+ * 준비 페이즈에만 허용한다 — 웨이브를 열기 전에는 얼마든지 고쳐 놓고,
+ * 한번 시작하면 그 배치로 끝까지 간다. "잘못 놓아서 판을 버렸다"는
+ * 억울함만 없애고 "무엇을 어디에 둘까"라는 선택은 그대로 남긴다.
+ */
+export function moveTower(state, uid, px, py) {
+  if (state.phase !== PHASE.PREP) return '웨이브 중에는 옮길 수 없습니다';
+  const t = state.towers.find((x) => x.uid === uid);
+  if (!t) return '옮길 유닛이 없습니다';
+
+  const { c, r } = pxToTile(px, py);
+  if (c === t.c && r === t.r) return null;                 // 제자리 — 조용히 취소
+  if (!isBuildable(state.path, state.occupied, c, r)) return '풀숲 위 빈 칸에만 놓을 수 있습니다';
+
+  state.occupied.delete(tileKey(t.c, t.r));
+  t.c = c; t.r = r;
+  const p = tileToPx(c, r);
+  t.x = p.x; t.y = p.y;
+  state.occupied.add(tileKey(c, r));
+  state.adjacency = computeAdjacency(state);               // 옮기면 인접 효과가 즉시 바뀐다
+  return t;
+}
+
+/**
+ * 웨이브 시작.
+ * opts.skipFee 면 리그 참가비를 내지 않고 들어간다 — 코인을 아끼는 대신
+ * 이 웨이브의 적이 강해진다. 어느 쪽이든 판이 끝나지는 않는다.
+ */
+export function beginWave(state, opts = {}) {
   if (state.phase !== PHASE.PREP) return false;
   if (state.offer) return false;      // 특성을 고르기 전에는 다음 웨이브가 시작되지 않는다
 
@@ -95,14 +126,26 @@ export function beginWave(state) {
   // 리그 참가비 청구 전 시점이라 이어하기하면 이 웨이브의 준비 페이즈로 정확히 돌아간다.
   state.waveStart = state.serialize();
 
-  // 리그 참가비는 웨이브를 시작하는 순간 청구된다 — 준비 페이즈 내내 방생해 마련할 수 있다
+  // 리그 참가비 — 웨이브를 시작하는 순간이 결정 시점이다
   const due = rentDue(state);
+  state.feeSkipped = false;
   if (due > 0) {
-    if (state.bits < due) return false;
-    eco.spend(state, due);
-    state.rentPaid.push(state.wave);
-    state.pushLog(`리그 참가비 납부 — 코인 −${due}`);
-    state.showBanner('리그 참가비 납부', `−${due} 코인`, 1.4);
+    const canPay = state.bits >= due;
+    if (canPay && !opts.skipFee) {
+      eco.spend(state, due);
+      state.rentPaid.push(state.wave);
+      state.pushLog(`리그 참가비 납부 — 코인 −${due}`);
+      state.showBanner('리그 참가비 납부', `−${due} 코인`, 1.4);
+    } else {
+      // 불참. 코인은 굳지만 이 웨이브만 적이 세진다
+      state.rentPaid.push(state.wave);
+      state.feeSkipped = true;
+      const pct = Math.round(R.skipHp * 100);
+      state.pushLog(canPay
+        ? `리그 불참 — 이번 웨이브 적 체력 +${pct}%`
+        : `참가비 ${due} 코인이 없어 불참 — 이번 웨이브 적 체력 +${pct}%`);
+      state.showBanner('리그 불참', `적 체력 +${pct}%`, 1.6);
+    }
   }
 
   state.phase = PHASE.COMBAT;
@@ -165,14 +208,8 @@ export function update(state, dtRaw) {
 
   if (state.phase === PHASE.PREP) {
     if (state.clearDelay > 0) state.clearDelay -= dt;
-    // 압류: 리그 참가비를 낼 코인도, 팔아서 마련할 자산도 없으면 판이 끝난다
-    const due = rentDue(state);
-    if (due > 0 && state.bits + liquidValue(state) < due) {
-      state.phase = PHASE.LOSE;
-      state.lostTo = 'rent';
-      state.pushLog(`리그 참가비 ${due} 코인을 마련하지 못해 압류되었습니다.`);
-      finishRun(state);
-    }
+    // 참가비를 못 낸다고 판이 끝나지는 않는다 — 불참하고 더 센 웨이브를 받는 길이 있다.
+    // (예전에는 여기서 '압류' 패배가 났는데, 손쓸 수 없는 방식이라 재미가 없었다)
   }
 
   if (state.phase !== PHASE.COMBAT) return;

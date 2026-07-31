@@ -19,18 +19,19 @@
 import { shade, inkOf, hexOf } from './shading.js';
 import { createSprite } from './pixelSprite.js';
 import { SPRITES } from './monsterSprites.js';
+import { ATTR } from '../data/monsters.js';
 import { ATTACK } from './attackArt.js';
 
 const W = 22, H = 24;
-const SCALE = 4;                       // 도트 하나당 4px 로 구워두고 렌더에서 축소
+// 입체로 구우려면 음영이 흐를 자리가 필요하다. 4배로는 계단만 보여서 7배로 올렸다
+// (22×24 → 154×168). 몬스터당 한 번만 굽고 캐시하므로 비용은 부팅 때 한 번뿐이다.
+const SCALE = 7;
 
 const DEFAULT_LOOK = {
   build: 'rookie', head: 'round', horn: 0, hornStyle: 'straight',
   ear: 'none', wing: 'none', tail: 'none', hand: 'none',
   mark: 'none', glow: 'none',
 };
-
-const ATTR_COLOR = { FIRE: '#4fc3f7', GRASS: '#6ddf9c', WATER: '#c77dff' };
 
 const cache = new Map();
 
@@ -77,8 +78,8 @@ export function spriteFor(def, attack = false, shiny = false) {
     deep: shade(base, -0.55),
     alt: L.alt || shade(base, -0.42),
     ink: hexOf(def.mega ? '#6b430a' : inkOf(base)),
-    // 흰색 계열끼리 뭉개지지 않게, 가슴 문장은 속성 색으로 찍는다
-    attr: ATTR_COLOR[def.attr] || '#dbe4f0',
+    // 흰색 계열끼리 뭉개지지 않게, 가슴 문장은 원작 타입 색으로 찍는다
+    attr: ATTR[def.attr]?.color || '#dbe4f0',
   };
 
   const S = createSprite(W, H);
@@ -102,7 +103,8 @@ export function spriteFor(def, attack = false, shiny = false) {
   S.outline(C.ink);
   glow(S, L);
 
-  const cv = S.bake(SCALE);
+  // 메가진화는 기운을 두른 만큼 반사도 더 뜨겁게
+  const cv = S.bake(SCALE, { rim: def.mega ? [255, 190, 120] : [150, 190, 255] });
   cache.set(key, cv);
   return cv;
 }
@@ -133,8 +135,21 @@ export function drawUnit(ctx, def, cx, cy, s, aim = 0, attacking = false, shiny 
   const flip = Math.cos(aim) < -0.35 ? -1 : 1;   // 왼쪽을 겨누면 몸을 돌린다
 
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
   ctx.translate(cx, cy);
+
+  // 접지 그림자 — 입체 음영만으로는 유닛이 바닥에 붙어 있질 않고 떠 보인다.
+  // 발밑에 그림자 하나 깔아 주는 것만으로 "놓여 있다"는 느낌이 생긴다.
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(0, dh * 0.4, dw * 0.34, dw * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 입체로 구운 뒤로는 부드럽게 확대해야 한다 — 계단이 보이면 다시 도트로 읽힌다
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.scale(flip, 1);
   ctx.drawImage(cv, -dw / 2, -dh * 0.56, dw, dh);
   ctx.restore();

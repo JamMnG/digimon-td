@@ -107,6 +107,7 @@ export class GameState {
     this.rentPaid = [];             // 납부 완료한 유지비 웨이브
     this.lostTo = null;             // 'rent' 면 압류 패배
     this.selectedTowerUid = null;   // 필드에서 선택된 타워
+    this.movingUid = null;          // 이동 대기 중인 타워 (다음 빈 칸 클릭으로 옮긴다)
     this.buildMonsterId = null;     // 배치 예정 대상 (도구 또는 잡은 포켓몬)
     this.buildDef = null;
     this.summons = 0;               // 누적 소환 횟수 (비용 상승)

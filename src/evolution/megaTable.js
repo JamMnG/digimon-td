@@ -10,7 +10,7 @@
 //
 //  리자몽만 파트너에 따라 X / Y 로 갈린다 — 원작에서 메가진화가 두 종류인
 //  포켓몬이 리자몽뿐이기 때문이다. 나머지는 1:1 대응.
-//  메가진화가 원작에 없는 종(망나뇽·엠보아·이상해꽃 등)은 파트너로만 참여한다.
+//  메가진화가 원작에 없는 종(망나뇽·엠보아·괴력몬 등)은 파트너로만 참여한다.
 //
 // 조합표는 IP 격리 대상이 아니다(결과 id만 참조). 이름·색은 data/monsters.js에 있다.
 // ─────────────────────────────────────────────────────────────
@@ -33,8 +33,8 @@ export const MEGA = [
     note: '대지의 열기가 팔을 낫으로 바꾼다. 단일 대상 DPS 최상위.',
   },
   {
-    result: 'mega_machamp', base: 'machamp', partner: 'poliwrath',
-    note: '격투끼리의 맞대련. 처형이 붙어 체력이 깎인 적을 끝낸다.',
+    result: 'mega_venusaur', base: 'venusaur', partner: 'machamp',
+    note: '괴력몬이 등의 꽃봉오리를 억지로 벌린다. 광역 62 + 둔화 42%로 판 전체를 느리게 만든다.',
   },
   {
     result: 'mega_alakazam', base: 'alakazam', partner: 'togekiss',

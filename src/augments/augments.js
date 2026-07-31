@@ -45,18 +45,18 @@ export const AUGMENTS = [
   { id: 'weak_point', tier: 'silver', name: '급소찌르기', icon: '✦',
     desc: '치명타 확률 +16%p', mods: { critAdd: 0.16 } },
 
-  // 타입 특화 — 해당 타입이 필드의 1/3 남짓이라 전체 환산은 실버급이다
-  { id: 'dragon_soul', tier: 'silver', name: '용의비늘', icon: '🐉',
-    desc: `${fieldName('DRAGON')} 타입 공격력 +50%`, mods: { fieldAtk: { DRAGON: 0.50 } } },
-  { id: 'beast_fang', tier: 'silver', name: '검은띠', icon: '👊',
-    desc: `${fieldName('FIGHT')} 타입 공격 속도 +45%, 둔화 +15%p`,
-    mods: { fieldRate: { FIGHT: 0.45 }, slowAdd: 0.15 } },
-  { id: 'holy_ward', tier: 'silver', name: '이상한부적', icon: '🔮',
-    desc: `${fieldName('PSYCHIC')} 타입 사거리 +40%`, mods: { fieldRange: { PSYCHIC: 0.40 } } },
-  { id: 'dark_pact', tier: 'silver', name: '검은안경', icon: '👻',
-    desc: `${fieldName('GHOST')} 타입 치명타 +28%p`, mods: { fieldCrit: { GHOST: 0.28 } } },
-  { id: 'overdrive', tier: 'silver', name: '금속코트', icon: '⚙',
-    desc: `${fieldName('STEEL')} 타입 광역·관통 +65%`, mods: { fieldSplash: { STEEL: 0.65 } } },
+  // 배치 특성 특화 — 해당 특성이 필드의 1/3 남짓이라 전체 환산은 실버급이다
+  { id: 'dragon_soul', tier: 'silver', name: '용의비늘', icon: '🔗',
+    desc: `${fieldName('SWARM')} 특성 공격력 +50%`, mods: { fieldAtk: { SWARM: 0.50 } } },
+  { id: 'beast_fang', tier: 'silver', name: '검은띠', icon: '💪',
+    desc: `${fieldName('COACH')} 특성 공격 속도 +45%, 둔화 +15%p`,
+    mods: { fieldRate: { COACH: 0.45 }, slowAdd: 0.15 } },
+  { id: 'holy_ward', tier: 'silver', name: '이상한부적', icon: '🎯',
+    desc: `${fieldName('FOCUS')} 특성 사거리 +40%`, mods: { fieldRange: { FOCUS: 0.40 } } },
+  { id: 'dark_pact', tier: 'silver', name: '검은안경', icon: '🕯',
+    desc: `${fieldName('LONE')} 특성 치명타 +28%p`, mods: { fieldCrit: { LONE: 0.28 } } },
+  { id: 'overdrive', tier: 'silver', name: '금속코트', icon: '🧲',
+    desc: `${fieldName('LINK')} 특성 광역·관통 +65%`, mods: { fieldSplash: { LINK: 0.65 } } },
 
   // 경제 (실버)
   { id: 'bit_flow', tier: 'silver', name: '부적금화', icon: '💰',

@@ -12,13 +12,13 @@ import { VS } from '../net/versus.js';
 import { randomRoomCode, normalizeRoomCode } from '../core/rng.js';
 import { BALANCE, TILE } from '../config/balance.js';
 import { effectiveStats } from '../combat/combatSystem.js';
-import { evolveOptions, evolveCost, sellValue } from '../evolution/evolutionTree.js';
-import { megaOptions, megaCost } from '../evolution/megaTable.js';
-import { beatenBy } from '../combat/attributeChart.js';
+import { evolveOptions, evolveCost, sellValue, evoLine } from '../evolution/evolutionTree.js';
+import { megaOptions, megaCost, recipesFor } from '../evolution/megaTable.js';
+import { typeScores, strongAgainst, weakAgainst, relation, RELATION_TEXT, ATTACK_TYPES } from '../combat/attributeChart.js';
 import { previewWave } from '../enemy/enemySpawner.js';
 import { ITEM_NAME, ITEM_ICON, itemPrice } from '../economy/economyManager.js';
 import { SYNERGY_DEFS } from '../combat/synergy.js';
-import { towerCost, rentDue, nextRent, liquidValue } from '../core/stageManager.js';
+import { towerCost, rentDue, nextRent } from '../core/stageManager.js';
 import { PROPS, PROP_IDS, isProp } from '../data/props.js';
 import { ADJ_RULES } from '../combat/adjacency.js';
 import { summonCost, summonOdds, GRADE, LINE_HEADS } from '../core/summon.js';
@@ -49,6 +49,7 @@ export function initUI(state, handlers) {
     augRerolls: $('aug-rerolls'), reroll: $('btn-reroll'), chipAug: $('chip-aug'),
     ownedAug: $('owned-aug'),
     props: $('props'), rentChip: $('chip-rent'), adjBox: $('adj-rules'),
+    typeChart: $('typechart'),
     dps: $('chip-dps'), dpsPeak: $('chip-dps-peak'),
     fbSynergy: $('fb-synergy'), fbLog: $('fb-log'),
     weekly: $('weekly-box'), badges: $('badge-box'),
@@ -127,7 +128,7 @@ export function initUI(state, handlers) {
       lastSig = s; panelsAt = now;
       if (tab === 'build') { drawPreview(); drawSummon(); drawProps(); drawExchange(); }
       if (tab === 'unit') drawSelected();
-      if (tab === 'info') { drawSynergy(); drawLog(); drawOwnedAugments(); drawAdjRules(); }
+      if (tab === 'info') { drawSynergy(); drawLog(); drawOwnedAugments(); drawAdjRules(); drawTypeChart(); }
       drawFieldBar();
       drawAugmentOffer();
       drawOverlay();
@@ -179,18 +180,38 @@ export function initUI(state, handlers) {
       el.start.style.setProperty('--prog', `${Math.round(done * 100)}%`);
       el.start.classList.add('fighting');
     } else if (due > 0) {
+      // 참가비가 걸린 웨이브는 시작 버튼이 곧 선택지가 된다 —
+      // 내고 편하게 갈지, 아끼고 센 웨이브를 받을지
       el.start.classList.remove('fighting');
       state.waveTotal = 0;
       el.start.disabled = state.phase !== PHASE.PREP || state.bits < due;
-      el.start.textContent = state.bits < due
-        ? `리그 참가비 ◈${due} 부족`
-        : `리그 참가비 ◈${due} 납부 후 시작`;
+      el.start.textContent = `참가비 ◈${due} 내고 시작`;
     } else {
       el.start.classList.remove('fighting');
       state.waveTotal = 0;
       el.start.disabled = state.phase !== PHASE.PREP;
       el.start.textContent = '웨이브 시작';
     }
+    drawLeagueChoice(due);
+  }
+
+  /** 참가비 웨이브에서만 뜨는 '불참' 선택지 */
+  function drawLeagueChoice(due) {
+    let box = document.getElementById('league-skip');
+    const show = due > 0 && state.phase === PHASE.PREP;
+    if (!show) { if (box) box.remove(); return; }
+    const pct = Math.round((BALANCE.rent.skipHp ?? 0.3) * 100);
+    const poor = state.bits < due;
+    if (!box) {
+      box = document.createElement('button');
+      box.id = 'league-skip';
+      box.className = 'gbtn skipfee';
+      box.addEventListener('click', () => handlers.onStartWave({ skipFee: true }));
+      el.start.after(box);
+    }
+    box.innerHTML = `<b>불참하고 시작</b><small>${poor
+      ? `참가비가 없습니다 · 적 체력 +${pct}%`
+      : `◈${due} 아끼고 적 체력 +${pct}%`}</small>`;
   }
 
   /**
@@ -441,13 +462,66 @@ export function initUI(state, handlers) {
         return `<div class="dexcell empty" title="아직 만나지 못했습니다"><span class="dx-q">?</span></div>`;
       }
       const isShiny = !!(f & DEX_SHINY);
-      return `<div class="dexcell${isShiny ? ' shiny' : ''}" style="--dc:${d.color}"
-                   title="${d.name}${isShiny ? ' (이로치 확인)' : ''}">
+      return `<button class="dexcell${isShiny ? ' shiny' : ''}" style="--dc:${d.color}"
+                   data-dex="${id}" title="${d.name} — 눌러서 도감 설명 보기">
         <img src="${spriteURL(d, isShiny)}" alt="" width="30" height="33">
         <span class="dx-n">${d.name}</span>
         ${(f & DEX_GROWN) ? '<span class="dx-g">▲</span>' : ''}
-      </div>`;
+      </button>`;
     }).join('');
+
+    for (const b of el.dexGrid.querySelectorAll('[data-dex]')) {
+      b.addEventListener('click', () => openDexEntry(b.dataset.dex));
+    }
+  }
+
+  /**
+   * 도감 상세 — 잡은 포켓몬을 눌렀을 때.
+   * 도감인데 설명이 없어서 그림만 모으는 칸이었다는 피드백을 받아,
+   * 원작 도감처럼 설명·타입·능력치·진화 라인을 한 장에 담았다.
+   */
+  function openDexEntry(id) {
+    const d = MONSTERS[id];
+    if (!d) return;
+    const f = dexAll()[id] || 0;
+    const shiny = !!(f & DEX_SHINY);
+    let box = document.getElementById('dex-entry');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'dex-entry';
+      box.className = 'overlay';
+      box.addEventListener('click', (ev) => { if (ev.target === box) box.remove(); });
+      document.body.appendChild(box);
+    }
+    const stat = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
+    box.innerHTML = `<div class="dialog dexdlg">
+      <div class="dialog-ribbon">도감 No.${Object.keys(MONSTERS).indexOf(id) + 1}</div>
+      <div class="dex-head">
+        <img src="${spriteURL(d, shiny)}" alt="" width="96" height="105">
+        <div>
+          <h2>${d.name}${shiny ? ' ✨' : ''}</h2>
+          <div class="dex-badges">
+            <span class="badge" style="color:${ATTR[d.attr].color};border-color:${ATTR[d.attr].color}66">
+              ${ATTR[d.attr].mark} ${ATTR[d.attr].name}</span>
+            <span class="badge field">${FIELD[d.field].mark} ${FIELD[d.field].name}</span>
+            <span class="badge">${['', '기본', '1차진화', '최종진화', '메가진화'][d.tier]}</span>
+          </div>
+          <p class="dex-flavor">${d.dex || d.desc}</p>
+        </div>
+      </div>
+      <div class="result-grid">
+        ${stat('공격력', d.atk)}${stat('사거리', d.range)}
+        ${stat('연사', `${d.rate}/초`)}${stat('공격 방식', KIND[d.kind])}
+      </div>
+      <p class="fine">${d.desc}</p>
+      <h3 class="dex-h">진화 라인</h3>
+      ${evoStrip(id, id) || '<p class="fine">진화하지 않습니다.</p>'}
+      <div class="dialog-actions">
+        <button class="gbtn ghost" id="dex-close">닫기</button>
+      </div>
+    </div>`;
+    box.classList.remove('hidden');
+    box.querySelector('#dex-close').addEventListener('click', () => box.remove());
   }
 
   // ── 대결 로비 ──
@@ -862,26 +936,32 @@ export function initUI(state, handlers) {
     if (p.hasElite) parts.push('<span class="pill elite">정예</span>');
     parts.push('</div>');
 
+    // 이번 웨이브에 어떤 타입이 몇 마리 오는가 (복합 타입은 양쪽 다 센다)
+    const mix = Object.entries(p.byAttr).sort((x, y) => y[1] - x[1]);
+    const marks = mix.reduce((s, [, n]) => s + n, 0) || 1;
     parts.push('<div class="bar">');
-    for (const a of ['FIRE', 'GRASS', 'WATER']) {
-      const n = p.byAttr[a] || 0;
-      if (!n) continue;
-      parts.push(`<i style="width:${(n / p.total) * 100}%;background:${ATTR[a].color}"></i>`);
+    for (const [a, n] of mix) {
+      parts.push(`<i style="width:${(n / marks) * 100}%;background:${ATTR[a].color}"></i>`);
     }
     parts.push('</div>');
 
     parts.push('<div class="mixlist">');
-    for (const a of ['FIRE', 'GRASS', 'WATER']) {
-      const n = p.byAttr[a] || 0;
-      if (!n) continue;
-      parts.push(`<span class="mix ${attrClass[a]}">${ATTR[a].mark} ${ATTR[a].name} ${n}</span>`);
+    for (const [a, n] of mix) {
+      parts.push(`<span class="mix" style="color:${ATTR[a].color}">${ATTR[a].mark} ${ATTR[a].name} ${n}</span>`);
     }
     parts.push('</div>');
 
-    const dominant = Object.entries(p.byAttr).sort((x, y) => y[1] - x[1])[0]?.[0];
-    if (dominant) {
-      const counter = beatenBy(dominant);
-      parts.push(`<p class="fine">주력이 <b class="${attrClass[dominant]}">${ATTR[dominant].name}</b> → <b class="${attrClass[counter]}">${ATTR[counter].name}</b> 타워가 ×1.5</p>`);
+    // "무엇을 놓아야 하는가"를 바로 답한다 — 상성표를 외우게 만들지 않는다
+    const scores = typeScores(p.byId, (id) => ENEMIES[id].attr);
+    const good = scores.filter((s) => s.mult > 1.05).slice(0, 3);
+    const bad = scores.filter((s) => s.mult < 0.8).slice(-2);
+    if (good.length) {
+      parts.push(`<p class="fine">잘 통함 — ${good.map((s) =>
+        `<b style="color:${ATTR[s.type].color}">${ATTR[s.type].mark}${ATTR[s.type].name} ×${s.mult.toFixed(2)}</b>`).join(' ')}</p>`);
+    }
+    if (bad.length) {
+      parts.push(`<p class="fine">잘 안 통함 — ${bad.map((s) =>
+        `<b style="color:${ATTR[s.type].color}">${ATTR[s.type].mark}${ATTR[s.type].name} ×${s.mult.toFixed(2)}</b>`).join(' ')}</p>`);
     }
 
     parts.push(`<div class="mixlist" style="margin-top:6px">${
@@ -903,7 +983,7 @@ export function initUI(state, handlers) {
       rows.push(`<div class="pending" style="--gc:${g.color}">
         <span class="pg">${g.name}</span>
         <span class="pn">${d.name}</span>
-        <span class="ps"><b class="${attrClass[d.attr]}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</b>
+        <span class="ps"><b style="color:${ATTR[d.attr].color}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</b>
           · ${FIELD[d.field].name} · ${KIND[d.kind]}</span>
         <span class="ph">풀숲 위 빈 칸을 클릭해 배치하세요</span>
       </div>
@@ -970,6 +1050,71 @@ export function initUI(state, handlers) {
     }
   }
 
+  /**
+   * 진화 라인 미리보기 — 기본형부터 메가까지 한 줄로 펼친다.
+   *
+   * 진화 버튼은 '바로 다음 한 단계'만 보여 준다. 그래서 지금 잡은 게
+   * 결국 무엇이 되는지, 메가는 누구와 붙여야 하는지 알 길이 없었다.
+   */
+  function evoStrip(id, currentId) {
+    const line = evoLine(id);
+    if (line.length <= 1) return '';
+    const cells = line.map(({ id: lid, def }) => {
+      const on = lid === currentId;
+      return `<span class="es-cell${on ? ' on' : ''}" title="${def.name}">
+        <img src="${spriteURL(def)}" alt="" width="34" height="37">
+        <b>${def.name}</b>
+      </span>`;
+    });
+    // 메가는 진화가 아니라 조합이라 별도로 — 누구와 붙여야 하는지가 핵심 정보다
+    const last = line[line.length - 1];
+    const megas = recipesFor(last.id).filter((r) => r.base === last.id);
+    const megaCells = megas.map((r) => {
+      const to = MONSTERS[r.result], partner = MONSTERS[r.partner];
+      return `<span class="es-cell mega" title="${to.desc}">
+        <img src="${spriteURL(to)}" alt="" width="34" height="37">
+        <b>${to.name}</b>
+        <em>+ ${partner.name}</em>
+      </span>`;
+    });
+    return `<div class="evostrip">
+      ${cells.join('<i class="es-ar">▸</i>')}
+      ${megaCells.length ? `<i class="es-ar mega">◈</i>${megaCells.join('')}` : ''}
+    </div>`;
+  }
+
+  /**
+   * 이 도구가 지금 이 자리에서 실제로 얼마를 벌고 있는가.
+   *
+   * "도구가 필요한가"라는 피드백의 진짜 원인은 값이 안 보이는 것이었다.
+   * 칸 하나를 화력 대신 내주는 선택이라 판단할 근거가 있어야 한다 —
+   * 그래서 추상적인 %가 아니라 지금 이 배치의 합계를 그대로 보여준다.
+   */
+  function propWorth(t, boosted) {
+    const d = t.def;
+    const rows = [];
+    if (d.aura) {
+      const label = { atk: '공격력', rate: '공격 속도', range: '사거리', splash: '광역·관통', crit: '치명타' };
+      for (const [k, v] of Object.entries(d.aura)) {
+        const each = Math.round(v * 100);
+        rows.push(`${label[k] || k} +${each}% × ${boosted.length}기 = 합계 +${each * boosted.length}%`);
+      }
+    }
+    if (d.income) rows.push(`웨이브마다 코인 +${d.income}`);
+    if (d.incomePerProp) {
+      const near = state.towers.filter((x) => isProp(x.def) && x !== t
+        && Math.abs(x.c - t.c) <= 1 && Math.abs(x.r - t.r) <= 1).length;
+      rows.push(`인접 도구 ${near}개 → 웨이브마다 코인 +${d.incomePerProp * near}`);
+    }
+    if (!rows.length) return '';
+    const dead = boosted.length === 0 && !d.income && !d.incomePerProp;
+    return `<div class="worth${dead ? ' dead' : ''}">
+      <b>지금 이 자리의 값</b>
+      ${rows.map((r) => `<span>${r}</span>`).join('')}
+      ${dead ? '<em>아무에게도 닿지 않습니다 — 옆에 포켓몬을 붙이거나 옮기세요.</em>' : ''}
+    </div>`;
+  }
+
   // ── 선택한 타워 + 진화 / 메가진화 ──
   function drawSelected() {
     const t = state.selectedTower();
@@ -991,16 +1136,22 @@ export function initUI(state, handlers) {
           <span class="tier">도구</span>
         </div>
         <p class="desc">${d.desc}</p>
+        ${propWorth(t, boosted)}
         <div class="mixlist">
           <span class="mix">인접 강화 중 ${boosted.length}기</span>
           ${boosted.map((x) => `<span class="mix">${x.def.name}</span>`).join('')}
         </div>
         <p class="fine">도구는 공격하지 않습니다. 무엇 옆에 놓느냐가 전부입니다.</p>
-        <div style="margin-top:12px">
-          <button class="gbtn tiny danger" id="btn-sell">방생 (+${sellValue(t, state)})</button>
+        <div class="unit-acts">
+          <button class="gbtn tiny ${state.movingUid === t.uid ? 'go' : 'ghost'}" id="btn-move"
+            ${state.phase === PHASE.PREP ? '' : 'disabled'}>
+            ${state.movingUid === t.uid ? '옮길 칸 클릭…' : '이동 (M)'}</button>
+          <button class="gbtn tiny danger" id="btn-sell">방생 (S) +${sellValue(t, state)}</button>
         </div>`;
       const s0 = $('btn-sell');
       if (s0) s0.addEventListener('click', () => handlers.onSell());
+      const m0 = $('btn-move');
+      if (m0) m0.addEventListener('click', () => handlers.onMoveStart());
       return;
     }
 
@@ -1026,7 +1177,7 @@ export function initUI(state, handlers) {
       <span class="sh-body">
         <span class="nm">${d.name}</span>
         <span class="sh-badges">
-          <span class="badge ${attrClass[d.attr]}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</span>
+          <span class="badge" style="color:${ATTR[d.attr].color};border-color:${ATTR[d.attr].color}66">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</span>
           <span class="badge field">${FIELD[d.field].mark} ${FIELD[d.field].name}</span>
           <span class="badge tierb t${d.tier}">${tierName}</span>
         </span>
@@ -1087,6 +1238,9 @@ export function initUI(state, handlers) {
       rows.push('<div class="evolve-list" id="evolist"></div>');
     }
 
+    // 이 포켓몬이 결국 무엇이 되는가 — 진화 버튼보다 먼저 보여준다
+    rows.push(evoStrip(t.def.id, t.def.id));
+
     const jopts = megaOptions(state, t);
     if (jopts.length) {
       const jc = megaCost(state);
@@ -1095,11 +1249,22 @@ export function initUI(state, handlers) {
       rows.push('<p class="fine">상하좌우로 맞닿은 최종진화 2기가 1기로 합쳐집니다. 이 포켓몬의 타일이 남습니다.</p>');
     }
 
-    rows.push(`<div style="margin-top:12px">
-      <button class="gbtn tiny danger" id="btn-sell">방생 (+${sellValue(t, state)})</button>
-    </div>`);
+    // 재배치 — 잘못 놓은 자리에 판이 묶이지 않게. 웨이브 사이에만 열린다
+    const canMove = state.phase === PHASE.PREP;
+    const moving = state.movingUid === t.uid;
+    rows.push(`<div class="unit-acts">
+      <button class="gbtn tiny ${moving ? 'go' : 'ghost'}" id="btn-move" ${canMove ? '' : 'disabled'}>
+        ${moving ? '옮길 칸 클릭…' : '이동 (M)'}</button>
+      <button class="gbtn tiny danger" id="btn-sell">방생 (S) +${sellValue(t, state)}</button>
+    </div>
+    <p class="fine">${canMove
+      ? '이동은 웨이브 사이에만 됩니다. 옮기면 인접 효과가 다시 계산됩니다.'
+      : '웨이브가 끝나면 다시 배치할 수 있습니다.'}</p>`);
 
     el.selected.innerHTML = rows.join('');
+
+    const mv = $('btn-move');
+    if (mv) mv.addEventListener('click', () => handlers.onMoveStart());
 
     const list = $('evolist');
     if (list) {
@@ -1124,7 +1289,7 @@ export function initUI(state, handlers) {
           <div class="row1">
             <span class="arrowto">→</span>
             <b>${o.to.name}</b>
-            <span class="badge ${attrClass[o.to.attr]}">${ATTR[o.to.attr].mark}</span>
+            <span class="badge" style="color:${ATTR[o.to.attr].color}">${ATTR[o.to.attr].mark}</span>
             <span class="badge field">${FIELD[o.to.field].name}</span>
             <span class="mix">${KIND[o.to.kind]}</span>
           </div>
@@ -1153,7 +1318,7 @@ export function initUI(state, handlers) {
           <div class="row1">
             <span class="arrowto">◈</span>
             <b>${o.to.name}</b>
-            <span class="badge ${attrClass[o.to.attr]}">${ATTR[o.to.attr].mark}</span>
+            <span class="badge" style="color:${ATTR[o.to.attr].color}">${ATTR[o.to.attr].mark}</span>
             <span class="badge field">${FIELD[o.to.field].name}</span>
             <span class="mix">${KIND[o.to.kind]}</span>
           </div>
@@ -1182,6 +1347,24 @@ export function initUI(state, handlers) {
         <span class="cnt">${r.short}</span>
         <span class="eff">${r.text}</span>
       </div>`).join('');
+  }
+
+  // ── 타입 상성표 ──
+  // 원작 표를 그대로 쓰므로 외울 게 많다. 그래서 "이 타입이 무엇에 강한가"만
+  // 한 줄로 접어서 보여준다 — 필드에 실제로 놓은 타입을 맨 위로 끌어올린다.
+  function drawTypeChart() {
+    if (!el.typeChart) return;
+    const mine = new Set(state.towers.filter((t) => !isProp(t.def)).map((t) => t.def.attr));
+    const rows = ATTACK_TYPES.slice().sort((a, b) => (mine.has(b) ? 1 : 0) - (mine.has(a) ? 1 : 0));
+    const chip = (t) => `<i style="color:${ATTR[t].color}">${ATTR[t].mark}${ATTR[t].name}</i>`;
+    el.typeChart.innerHTML = rows.map((t) => {
+      const strong = strongAgainst(t), weak = weakAgainst(t);
+      return `<div class="tc-row${mine.has(t) ? ' on' : ''}">
+        <b style="color:${ATTR[t].color}">${ATTR[t].mark} ${ATTR[t].name}</b>
+        <span class="tc-good">${strong.map(chip).join('') || '—'}</span>
+        <span class="tc-bad">${weak.map(chip).join('') || '—'}</span>
+      </div>`;
+    }).join('');
   }
 
   // ── 시너지 ──

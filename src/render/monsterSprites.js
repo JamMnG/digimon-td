@@ -431,20 +431,22 @@ export const SPRITES = {
     S.rect(9, 9, 4, 1, INKY);
   },
 
-  mega_machamp(S, C) {
-    S.shaded(2, 9, 5, 3, C.light); S.shaded(15, 9, 5, 3, C.light);
-    S.shaded(1, 12, 5, 5, C.base); S.shaded(16, 12, 5, 5, C.base);
-    S.shaded(0, 13, 3, 3, GOLD); S.shaded(19, 13, 3, 3, GOLD);
-    S.shaded(0, 16, 3, 5, C.base); S.shaded(19, 16, 3, 5, C.base);
-    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
-    blob(S, 4, 11, 14, 8, C.base, 2);
-    S.rect(4, 16, 14, 2, GOLD);
-    S.rect(10, 16, 2, 2, RED);
-    S.rect(10, 12, 2, 4, shade(C.base, -0.45));
-    neck(S, 6, 10, 10, shade(C.base, -0.55));
-    dome(S, 5, 3, 12, 8, C.base, 3);
-    for (const x of [6, 10, 14]) S.taper(x, 0, 3, 4, GOLD);
-    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 3, sclera: '#ffd0a0', pupil: '#5a1a0a' });
+  // 메가이상해꽃 — 등의 꽃이 한 송이에서 여러 송이로 벌어지고 몸집이 커진다
+  mega_venusaur(S, C) {
+    S.taper(0, 6, 22, 5, LEAF, 1);
+    S.taper(0, 2, 9, 6, LEAF_D, 1); S.taper(13, 2, 9, 6, LEAF_D, 1);
+    blob(S, 2, 0, 18, 8, PINK, 2);                // 통째로 벌어진 큰 꽃
+    S.rect(5, 0, 12, 1, shade(PINK, 0.5));
+    blob(S, 0, 2, 6, 5, PINK_D, 1); blob(S, 16, 2, 6, 5, PINK_D, 1);  // 곁꽃 두 송이
+    S.rect(7, 2, 8, 5, GOLD);                     // 꽃 중심
+    S.rect(8, 3, 6, 3, '#fff0a0');
+    S.rect(9, 4, 4, 1, '#ffffff');
+    blob(S, 3, 10, 18, 9, C.base, 2);
+    for (const x of [4, 9, 14, 18]) blob(S, x, 17, 4, 6, C.dark);
+    dome(S, 0, 11, 9, 8, C.base, 3);
+    S.taper(0, 15, 5, 3, shade(C.base, 0.28));
+    eyes(S, 13, { lx: 0, rx: 5, w: 3, h: 3, sclera: RED });
+    S.rect(1, 17, 6, 1, INKY);
   },
 
   // ══════════ 발챙이 라인 ══════════

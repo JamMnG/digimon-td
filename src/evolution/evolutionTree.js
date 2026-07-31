@@ -87,6 +87,33 @@ function describeChanges(from, to) {
 }
 
 /** 전체 진화 트리를 라인별로 반환 (도감 UI용) */
+/**
+ * 이 포켓몬이 속한 진화 라인 전체 (기본 → 1차 → 최종).
+ *
+ * "이걸 키우면 뭐가 되는가"를 미리 못 봐서 답답하다는 피드백이 있었다.
+ * 지금 가진 것에서 앞뒤로 다 펼쳐 보여줘야 키울지 말지를 정할 수 있다.
+ */
+export function evoLine(id) {
+  // 이 id 로 이어지는 기본형을 먼저 찾는다
+  let head = id;
+  for (const [k, m] of Object.entries(MONSTERS)) {
+    if (m.tier !== 1) continue;
+    let cur = k;
+    while (cur) {
+      if (cur === id) { head = k; cur = null; break; }
+      cur = (MONSTERS[cur].evolvesTo || [])[0];
+    }
+    if (head === k) break;
+  }
+  const line = [];
+  let cur = head;
+  while (cur && MONSTERS[cur]) {
+    line.push({ id: cur, def: MONSTERS[cur] });
+    cur = (MONSTERS[cur].evolvesTo || [])[0];
+  }
+  return line;
+}
+
 export function buildTreeView(starters) {
   return starters.map((rootId) => {
     const walk = (id) => ({

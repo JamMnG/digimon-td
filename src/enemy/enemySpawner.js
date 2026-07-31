@@ -55,13 +55,19 @@ export function previewWave(wave) {
   const byName = {};
   for (const id of q) {
     const d = ENEMIES[id];
-    byAttr[d.attr] = (byAttr[d.attr] || 0) + 1;
+    // 복합 타입은 두 타입 모두 센다 — "이번 웨이브에 비행이 몇이나 오는가"가
+    // 무엇을 놓을지 정하는 정보이므로, 주 타입만 세면 절반을 놓친다
+    for (const a of d.attr) byAttr[a] = (byAttr[a] || 0) + 1;
     byName[d.name] = (byName[d.name] || 0) + 1;
   }
+  const byId = {};
+  for (const id of q) byId[id] = (byId[id] || 0) + 1;
+
   return {
     total: q.length,
     byAttr,
     byName,
+    byId,
     hasBoss: q.some((id) => ENEMIES[id].cls === 'boss'),
     hasElite: q.some((id) => ENEMIES[id].cls === 'elite'),
   };
@@ -95,7 +101,9 @@ export function spawnOne(state, enemyId) {
   const sc = (d.cls === 'boss' && !S.scaleBosses)
     ? { hp: ss.hp, speed: ss.speed, bounty: ss.bounty }   // 보스는 웨이브 스케일만 제외
     : waveScale(state.wave, ss);
-  const hp = Math.round(d.hp * sc.hp);
+  // 리그에 불참한 웨이브만 적이 두꺼워진다 — 참가비를 안 낸 대가
+  const feeMult = state.feeSkipped ? 1 + (BALANCE.rent.skipHp ?? 0.30) : 1;
+  const hp = Math.round(d.hp * sc.hp * feeMult);
   const p = posAtDistance(state.path, 0);
 
   state.enemies.push({

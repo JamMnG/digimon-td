@@ -90,7 +90,10 @@ export const ATTACK = {
   machop(S, C) { punch(S, C, 1, 12); },
   machoke(S, C) { punch(S, C, 0, 12); },
   machamp(S, C) { punch(S, C, 0, 11); punch(S, C, 0, 15); },
-  mega_machamp(S, C) { punch(S, C, 0, 10); punch(S, C, 0, 15); S.rect(0, 9, 22, 1, '#ffb03a'); },
+  mega_venusaur(S) {
+    for (const x of [1, 6, 11, 16]) S.rect(x, 0, 4, 3, '#e8709a');
+    S.rect(0, 4, 22, 2, '#f0a0c0');
+  },
   poliwag(S) { S.rect(5, 9, 12, 1, '#a8e0ff'); },
   poliwhirl(S) { S.rect(0, 14, 5, 4, WHITE); },
   poliwrath(S) { S.rect(0, 13, 6, 5, WHITE); S.rect(0, 12, 6, 1, '#ffffff'); },
@@ -176,7 +179,7 @@ export const SHOT_OF = {
 
   // 격투 계열
   machop: ['bullet', '#c8d8e4'], machoke: ['bullet', '#a8c0d4'],
-  machamp: ['bullet', '#e8f0f8'], mega_machamp: ['bullet', '#ffd0a0'],
+  machamp: ['bullet', '#e8f0f8'],
   poliwag: ['orb', '#a8e0ff'], poliwhirl: ['orb', '#7fc8f0'],
   poliwrath: ['bullet', '#e8f4ff'],
 
@@ -194,7 +197,7 @@ export const SHOT_OF = {
 
   // 풀 계열
   bulbasaur: ['bullet', '#7fc98f'], ivysaur: ['orb', '#6fbc86'],
-  venusaur: ['orb', '#e8709a'],
+  venusaur: ['orb', '#e8709a'], mega_venusaur: ['orb', '#ff7ab0'],
 
   // 강철 계열
   beldum: ['missile', '#8fa8d0'], metang: ['missile', '#6f88b8'],
