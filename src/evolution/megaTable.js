@@ -125,7 +125,7 @@ export function megaOptions(state, tower) {
       }
     } else if (lackBits || lackItem) {
       status = 'cost';
-      reason = lackBits ? '돈 부족' : `${eco.ITEM_NAME[cost.item]} 부족`;
+      reason = lackBits ? '코인 부족' : `${eco.ITEM_NAME[cost.item]} 부족`;
     } else {
       status = 'ready';
       reason = '';

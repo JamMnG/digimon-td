@@ -299,18 +299,76 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
 .water { color: var(--ty-water); }
 .field { color: #dcc9a0; }
 
-/* ── 선택 패널 ── */
-.selhead { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; margin-bottom: 8px; }
-.selhead .nm { font-size: 16px; font-weight: 700; }
+/* ── 선택 패널 ──
+   예전엔 4열 표에 숫자만 늘어놔서 딱딱하고, 그 값이 높은 건지 낮은 건지도 몰랐다.
+   초상화를 세워 무엇을 보고 있는지 먼저 알리고, DPS 는 결과값이라 따로 크게,
+   나머지 스탯은 막대로 바꿔 상대적 크기가 보이게 했다. */
+.selhead { display: flex; align-items: center; gap: 11px; margin-bottom: 11px; }
+.portrait {
+  display: grid; place-items: center; flex: 0 0 62px;
+  width: 62px; height: 62px; border-radius: 14px;
+  background: radial-gradient(circle at 34% 26%,
+    color-mix(in srgb, var(--pc, #ffd166) 30%, #1d1608), #150f04);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pc, #ffd166) 58%, transparent),
+              inset 0 3px 8px rgba(0, 0, 0, .6), 0 3px 0 rgba(0, 0, 0, .45);
+}
+.portrait img { display: block; image-rendering: pixelated; }
+.sh-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.selhead .nm { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
+.sh-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.badge.tierb { color: var(--muted); }
+.badge.tierb.t3 { color: var(--sand); }
+.badge.tierb.t4 { color: var(--gold); background: rgba(255, 209, 102, .12); }
 .tier { font-size: 11px; color: var(--muted); }
+
+/* DPS 는 다른 스탯의 결과값이다 — 따로 세운다 */
+.dpshero {
+  position: relative;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 12px;
+  padding: 10px 12px 13px; box-shadow: var(--hole); margin-bottom: 10px;
+}
+.dpshero i { font-style: normal; display: block; font-size: 9px; color: var(--muted-2); letter-spacing: .08em; }
+.dh-l b { font-size: 27px; font-weight: 700; color: #7fe0a0; letter-spacing: -1px; line-height: 1.05; }
+.dh-r { display: flex; gap: 14px; margin-left: auto; }
+.dh-r b { font-size: 14px; color: var(--cream); }
+/* 필드 기여율을 바닥 선으로 — 누가 캐리 중인지 한눈에 */
+.dh-bar {
+  position: absolute; left: 2px; right: 2px; bottom: 2px; height: 4px;
+  border-radius: 999px; background: rgba(0, 0, 0, .5); overflow: hidden;
+}
+.dh-bar i { display: block; height: 100%; background: linear-gradient(90deg, #4f8f5f, #7fe0a0); }
+
+/* 스탯 막대 — 숫자만 있으면 높은 건지 낮은 건지 알 수 없다 */
+.statbars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.statrow { display: flex; align-items: center; gap: 9px; font-size: 11.5px; }
+.statrow i { font-style: normal; color: var(--muted); width: 52px; flex: 0 0 52px; }
+.sr-bar {
+  flex: 1; height: 9px; border-radius: 999px; overflow: hidden;
+  background: var(--inset); border: 2px solid var(--ink); box-shadow: var(--hole);
+}
+.sr-bar b {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #8a6a1e, var(--gold));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+.statrow em {
+  font-style: normal; font-weight: 700; color: var(--cream);
+  min-width: 54px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.kindrow em { min-width: 0; margin-left: 0; }
+.k-single { color: var(--sand); }
+.k-splash { color: #ff9a5a; }
+.k-pierce { color: #7fd8ff; }
+
 .statgrid {
   display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 4px 8px;
   font-variant-numeric: tabular-nums; margin: 8px 0;
-  background: rgba(0, 0, 0, .2); border-radius: 8px; padding: 8px;
+  background: var(--inset); border-radius: 9px; padding: 9px; box-shadow: var(--hole);
 }
 .statgrid .k { color: var(--muted); font-size: 11px; }
 .statgrid .v { font-weight: 700; }
-.desc { color: #e0d3b4; line-height: 1.55; margin: 7px 0; font-size: 12px; }
+.desc { color: #e0d3b4; line-height: 1.55; margin: 9px 0; font-size: 12px; }
 
 .evolve-list { display: flex; flex-direction: column; gap: 8px; margin-top: 9px; }
 .evo {
@@ -489,34 +547,95 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
 .vs-bar.ahead .vs-gap { color: #7ee081; border-color: #3f6b42; }
 .vs-bar.behind .vs-gap { color: #ff9d8a; border-color: #7a3b32; }
 
-.stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+/* ── 스테이지 카드 ──
+   예전엔 제목 + 미니맵 + 회색 태그 다섯 개가 나란히 있어서 정보가 다 같은 무게였다.
+   미니맵을 히어로로 올리고, 난이도는 별로, 최고 기록은 진행 막대로 바꿨다.
+   숫자 두 개(체력·속도 배율)보다 별 다섯 개가 훨씬 빨리 읽힌다. */
+.stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 14px; }
 .stagecard {
+  position: relative; overflow: hidden;
   text-align: left; font-family: inherit; color: var(--cream); cursor: pointer;
-  background: var(--panel); border: 3px solid var(--ink); border-radius: 14px;
-  padding: 13px 14px; box-shadow: 0 5px 0 rgba(0, 0, 0, .4);
-  display: flex; flex-direction: column; gap: 7px;
-  transition: transform .06s, box-shadow .06s, background .12s;
+  background: linear-gradient(var(--panel), #2e2410);
+  border: 3px solid var(--ink); border-radius: 16px; padding: 0;
+  box-shadow: var(--drop), var(--bevel);
+  display: flex; flex-direction: column;
+  transition: transform .08s, box-shadow .08s, filter .14s;
 }
-.stagecard:hover:not(.locked) { background: var(--panel-2); }
-.stagecard:active:not(.locked) { transform: translateY(5px); box-shadow: 0 0 0; }
-.stagecard.locked { opacity: .55; cursor: not-allowed; border-style: dashed; }
+.stagecard:hover:not(.locked) { filter: brightness(1.12); transform: translateY(-2px); }
+.stagecard:active:not(.locked) { transform: translateY(4px); box-shadow: 0 0 0, var(--bevel); }
+.stagecard.locked { cursor: not-allowed; filter: saturate(.25) brightness(.72); }
 .stagecard.cleared { border-color: var(--gold); }
 .stagecard.saved { border-color: #7ee081; }
-.sc-top { display: flex; align-items: center; gap: 8px; }
-.sc-top .nm { font-size: 17px; font-weight: 700; }
-.sc-no {
-  width: 26px; height: 26px; flex: 0 0 auto; border-radius: 8px;
-  background: var(--panel-3); border: 2px solid var(--ink);
-  display: grid; place-items: center; font-weight: 700; font-size: 12px;
+
+/* 히어로 — 미니맵 위에 번호와 상태 리본을 얹는다 */
+.sc-hero { position: relative; line-height: 0; background: var(--inset); }
+.sc-hero .sc-map {
+  display: block; width: 100%; border: 0; border-radius: 0;
+  border-bottom: 3px solid var(--ink);
 }
-.sc-desc { color: var(--muted); font-size: 12px; line-height: 1.5; }
-.sc-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
-.sc-lock { color: #ffcfa8; font-size: 11px; font-weight: 700; }
-.sc-map { border-radius: 8px; border: 2px solid var(--ink); display: block; width: 100%; }
+/* 아래쪽을 어둡게 깔아 번호·리본이 지형에 묻히지 않게 */
+.sc-hero::after {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 42%;
+  background: linear-gradient(transparent, rgba(12, 8, 2, .72));
+  pointer-events: none;
+}
+.sc-no {
+  position: absolute; left: 8px; top: 8px; z-index: 2;
+  width: 28px; height: 28px; border-radius: 9px;
+  background: linear-gradient(var(--panel-3), var(--panel));
+  border: 2px solid var(--ink); color: var(--cream);
+  display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  box-shadow: var(--bevel), 0 2px 0 rgba(0, 0, 0, .5);
+}
+.sc-flag {
+  position: absolute; right: 8px; z-index: 2;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  border-radius: 999px; padding: 3px 9px; color: #241c10;
+  box-shadow: var(--bevel), 0 2px 0 rgba(0, 0, 0, .45);
+}
+.sc-flag.clear { top: 8px; background: linear-gradient(var(--gold), #d99b18); }
+.sc-flag.save { top: 8px; background: linear-gradient(#8fe89a, #4aa85c); }
+.sc-flag.clear + .sc-flag.save { top: 34px; }
+.sc-veil {
+  position: absolute; inset: 0; z-index: 3; display: grid; place-items: center;
+  font-size: 30px; background: rgba(10, 7, 2, .55);
+}
+
+/* 본문 */
+.sc-body { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.sc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sc-top .nm { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.sc-desc { color: var(--muted); font-size: 12px; line-height: 1.5; flex: 1; }
+
+.sc-stats { display: flex; gap: 8px; }
+.sc-stats > span {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 9px;
+  padding: 5px 9px; box-shadow: var(--hole);
+}
+.sc-stats i { font-style: normal; font-size: 9px; color: var(--muted-2); letter-spacing: .08em; }
+.sc-stats b { font-size: 13px; }
+.sc-diff b { color: #ffb03a; letter-spacing: 1px; }
+.sc-waves b { color: var(--cream); }
+
+/* 최고 기록 진행 막대 — "여기까지 갔다"가 한눈에 */
+.sc-prog { display: flex; align-items: center; gap: 8px; }
+.sp-bar {
+  flex: 1; height: 8px; border-radius: 999px; overflow: hidden;
+  background: var(--inset); border: 2px solid var(--ink); box-shadow: var(--hole);
+}
+.sp-bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #8a6a1e, var(--gold));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.sp-txt { font-size: 10px; color: var(--muted-2); white-space: nowrap; }
+.sp-txt b { color: var(--gold); font-size: 12px; }
+
+.sc-lock { color: #ffcfa8; font-size: 11px; font-weight: 700; line-height: 1.5; }
 
 /* ── 소환 / 모델 아이콘 ── */
 .ico { vertical-align: middle; image-rendering: auto; }
-.chip i { display: inline-flex; align-items: center; }
 
 /* 몬스터볼 — 이 화면의 주인공 버튼 */
 .summon-btn {
@@ -606,13 +725,6 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
 }
 
 /* ── 유지비 / 설치물 / 인접 ── */
-.chip.rent b { color: #ffb38a; }
-.chip.rent.warn { border-color: #c9932e; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px rgba(255,209,102,.35) inset; }
-.chip.rent.danger {
-  border-color: #ff6b5a; background: #5a2018;
-  box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px rgba(255,107,90,.5) inset;
-}
-.chip.rent.danger b { color: #ffd6cd; }
 
 .shop.one { grid-template-columns: 1fr 1fr; }
 @media (max-width: 560px) { .shop.one { grid-template-columns: 1fr; } }
@@ -629,7 +741,6 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
 .adjbox .mix.up { color: var(--ok); border-color: #3f6b2f; }
 
 /* ── 증강 ── */
-.chip.aug b { color: #d3bcff; }
 
 .aug-box {
   background: var(--panel); border: 4px solid var(--ink); border-radius: 18px;
@@ -714,17 +825,12 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
   .layout { padding: 10px 10px 32px; gap: 10px; }
   .hud { padding: 7px 10px; gap: 8px; }
   .hud-stage b { font-size: 13px; }
-  .chip { padding: 3px 7px; font-size: 12px; }
   .tabpane { grid-template-columns: 1fr; }
   .coach { left: 8px; right: 8px; bottom: 8px; width: auto; }
   .aug-grid { grid-template-columns: 1fr; }
   .result-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* ── 실시간 DPS 칩 ── */
-.chip.dps b { color: #7fe0a0; }
-.chip.dps small { color: var(--muted); font-size: 10px; font-weight: 700; margin-left: 2px; }
-.chip.dps.live { border-color: #4f8f5f; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px rgba(127,224,160,.25) inset; }
 
 /* ── 카드 안의 아이콘 액자 ──
    예전엔 이름 앞에 26px 그림이 그냥 붙어 있어서 작은 색점으로 보였다.

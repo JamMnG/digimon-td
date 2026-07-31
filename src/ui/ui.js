@@ -22,6 +22,7 @@ import { PROPS, PROP_IDS, isProp } from '../data/props.js';
 import { ADJ_RULES } from '../combat/adjacency.js';
 import { summonCost, summonOdds, GRADE } from '../core/summon.js';
 import { iconTag, iconURL } from '../render/itemArt.js';
+import { spriteURL } from '../render/unitArt.js';
 import { augmentById, TIER, OFFER_WAVES } from '../augments/augments.js';
 
 const $ = (id) => document.getElementById(id);
@@ -302,25 +303,45 @@ export function initUI(state, handlers) {
       card.className = 'stagecard' + (lock.unlocked ? '' : ' locked')
         + (rec.cleared ? ' cleared' : '') + (saved ? ' saved' : '');
       card.disabled = !lock.unlocked;
-      card.innerHTML = `
-        <div class="sc-top">
-          <span class="sc-no">${i + 1}</span>
-          <span class="nm">${lock.unlocked ? st.name : '???'}</span>
-          <span class="tag">${st.tag}</span>
-        </div>`;
-      card.appendChild(miniMap(st, lock.unlocked));
+      // 난이도는 숫자 두 개(체력·속도 배율)보다 별 다섯 개가 훨씬 빨리 읽힌다.
+      // 1.0배를 별 1개, 2.2배를 별 5개로 매핑한다.
+      const hp = st.scale?.hp ?? 1;
+      const diff = Math.max(1, Math.min(5, Math.round((hp - 0.9) / 0.32) + 1));
+      const stars = '★'.repeat(diff) + '☆'.repeat(5 - diff);
+      // 최고 기록을 진행 막대로 — "여기까지 갔다"가 한눈에 보인다
+      const prog = Math.min(100, Math.round((rec.best / st.waves) * 100));
+
+      // 미니맵을 카드 상단 히어로 영역으로 올린다
+      const hero = document.createElement('div');
+      hero.className = 'sc-hero';
+      hero.appendChild(miniMap(st, lock.unlocked));
+      hero.insertAdjacentHTML('beforeend', `
+        <span class="sc-no">${i + 1}</span>
+        ${rec.cleared ? '<span class="sc-flag clear">★ 클리어</span>' : ''}
+        ${saved ? '<span class="sc-flag save">● 저장된 판</span>' : ''}
+        ${lock.unlocked ? '' : '<span class="sc-veil">🔒</span>'}`);
+      card.appendChild(hero);
+
       const rest = document.createElement('div');
+      rest.className = 'sc-body';
       rest.innerHTML = lock.unlocked
-        ? `<div class="sc-desc">${st.desc}</div>
-           <div class="sc-meta">
-             <span class="mix">${st.waves}웨이브</span>
-             <span class="mix">체력 ×${(st.scale?.hp ?? 1).toFixed(2)}</span>
-             <span class="mix">속도 ×${(st.scale?.speed ?? 1).toFixed(2)}</span>
-             ${rec.cleared ? '<span class="mix" style="color:#ffd166">★ 클리어</span>' : ''}
-             <span class="mix">최고 ${rec.best}</span>
-             ${saved ? '<span class="mix" style="color:#7ee081">● 저장된 판 있음</span>' : ''}
+        ? `<div class="sc-top">
+             <span class="nm">${st.name}</span>
+             <span class="tag">${st.tag}</span>
+           </div>
+           <div class="sc-desc">${st.desc}</div>
+           <div class="sc-stats">
+             <span class="sc-diff" title="체력 ×${hp.toFixed(2)} · 속도 ×${(st.scale?.speed ?? 1).toFixed(2)}">
+               <i>난이도</i><b>${stars}</b>
+             </span>
+             <span class="sc-waves"><i>웨이브</i><b>${st.waves}</b></span>
+           </div>
+           <div class="sc-prog" title="최고 ${rec.best} / ${st.waves}웨이브">
+             <span class="sp-bar"><i style="width:${prog}%"></i></span>
+             <span class="sp-txt">최고 <b>${rec.best}</b></span>
            </div>`
-        : `<div class="sc-lock">🔒 ${lock.reason}</div>`;
+        : `<div class="sc-top"><span class="nm">???</span><span class="tag">${st.tag}</span></div>
+           <div class="sc-lock">${lock.reason}</div>`;
       card.appendChild(rest);
 
       if (lock.unlocked) {
@@ -759,24 +780,44 @@ export function initUI(state, handlers) {
     if (st.pierce > 0) tags.push(`관통 ${st.pierce}`);
 
     const rows = [];
+    // 초상화를 왼쪽에 세우면 "지금 무엇을 보고 있는지"가 글자 없이 먼저 읽힌다
     rows.push(`<div class="selhead">
-      <span class="nm">${d.name}</span>
-      <span class="badge ${attrClass[d.attr]}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</span>
-      <span class="badge field">${FIELD[d.field].name}</span>
-      <span class="tier">T${d.tier} ${tierName}</span>
+      <span class="portrait" style="--pc:${d.color}">
+        <img src="${spriteURL(d)}" alt="" width="52" height="57">
+      </span>
+      <span class="sh-body">
+        <span class="nm">${d.name}</span>
+        <span class="sh-badges">
+          <span class="badge ${attrClass[d.attr]}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</span>
+          <span class="badge field">${FIELD[d.field].mark} ${FIELD[d.field].name}</span>
+          <span class="badge tierb t${d.tier}">${tierName}</span>
+        </span>
+      </span>
     </div>`);
 
-    // 이 유닛이 판 전체 피해에서 차지하는 몫 — "누가 실제로 캐리하고 있나"
+    // DPS 는 다른 스탯의 결과값이라 따로 크게 세운다
     const share = state.totalDamage > 0 ? (t.damage / state.totalDamage) * 100 : 0;
-    rows.push(`<div class="statgrid">
-      <span class="k">DPS</span><span class="v">${Math.round(st.dps).toLocaleString()}</span>
-      <span class="k">공격력</span><span class="v">${Math.round(st.atk)}</span>
-      <span class="k">사거리</span><span class="v">${Math.round(st.range)}</span>
-      <span class="k">공격속도</span><span class="v">${st.rate.toFixed(2)}/s</span>
-      <span class="k">방식</span><span class="v">${KIND[d.kind]}</span>
-      <span class="k">누적 피해</span><span class="v">${Math.round(t.damage).toLocaleString()}</span>
-      <span class="k">필드 기여</span><span class="v">${share.toFixed(1)}%</span>
-      <span class="k">필드 총합</span><span class="v">${Math.round(state.totalDamage).toLocaleString()}</span>
+    rows.push(`<div class="dpshero">
+      <span class="dh-l"><i>실효 DPS</i><b>${Math.round(st.dps).toLocaleString()}</b></span>
+      <span class="dh-r">
+        <span><i>누적 피해</i><b>${Math.round(t.damage).toLocaleString()}</b></span>
+        <span><i>필드 기여</i><b>${share.toFixed(1)}%</b></span>
+      </span>
+      <span class="dh-bar"><i style="width:${Math.min(100, share)}%"></i></span>
+    </div>`);
+
+    // 스탯은 표가 아니라 막대로 — 숫자만 있으면 이게 높은 건지 낮은 건지 알 수 없다
+    const bar = (label, val, max, txt, cls = '') => `
+      <span class="statrow ${cls}">
+        <i>${label}</i>
+        <span class="sr-bar"><b style="width:${Math.max(3, Math.min(100, (val / max) * 100))}%"></b></span>
+        <em>${txt}</em>
+      </span>`;
+    rows.push(`<div class="statbars">
+      ${bar('공격력', st.atk, 320, Math.round(st.atk))}
+      ${bar('사거리', st.range, 280, Math.round(st.range))}
+      ${bar('공격속도', st.rate, 2.2, st.rate.toFixed(2) + '/s')}
+      <span class="statrow kindrow"><i>방식</i><em class="k-${d.kind}">${KIND[d.kind]}</em></span>
     </div>`);
 
     if (tags.length) rows.push(`<div class="mixlist">${tags.map((x) => `<span class="mix">${x}</span>`).join('')}</div>`);
@@ -813,7 +854,7 @@ export function initUI(state, handlers) {
       const jc = megaCost(state);
       rows.push(`<h2 style="margin-top:14px">메가진화 · 인접한 동료와의 유대 (${jc.bits} 코인 + ${iconTag('item', jc.item, 15)} ${ITEM_NAME[jc.item]} ${jc.amount})</h2>`);
       rows.push('<div class="evolve-list" id="joglist"></div>');
-      rows.push('<p class="fine">상하좌우로 맞닿은 완전체 2기가 1기로 합쳐집니다. 이 포켓몬의 타일이 남습니다.</p>');
+      rows.push('<p class="fine">상하좌우로 맞닿은 최종진화 2기가 1기로 합쳐집니다. 이 포켓몬의 타일이 남습니다.</p>');
     }
 
     rows.push(`<div style="margin-top:12px">

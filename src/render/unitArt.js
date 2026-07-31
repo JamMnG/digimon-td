@@ -81,6 +81,18 @@ export function spriteFor(def, attack = false) {
   return cv;
 }
 
+/**
+ * UI(DOM)에서 쓸 수 있는 data URL.
+ * 캔버스를 그대로 넘기면 innerHTML 로 갈아끼울 때마다 사라지므로 <img> 로 쓴다.
+ */
+const urlCache = new Map();
+export function spriteURL(def) {
+  if (urlCache.has(def.id)) return urlCache.get(def.id);
+  const url = spriteFor(def).toDataURL('image/png');
+  urlCache.set(def.id, url);
+  return url;
+}
+
 /** 유닛 그리기 — 구워둔 스프라이트를 크기에 맞춰 붙인다 */
 // 진화 단계가 곧 덩치다. 파이리와 리자몽이 같은 크기로 보이면
 // "키웠다"는 감각이 안 오고, 필드에서 무엇이 주력인지도 한눈에 안 읽힌다.
