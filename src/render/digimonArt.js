@@ -82,10 +82,14 @@ export function spriteFor(def, attack = false) {
 }
 
 /** 유닛 그리기 — 구워둔 스프라이트를 크기에 맞춰 붙인다 */
+// 진화 단계가 곧 덩치다. 파이리와 리자몽이 같은 크기로 보이면
+// "키웠다"는 감각이 안 오고, 필드에서 무엇이 주력인지도 한눈에 안 읽힌다.
+const TIER_SCALE = { 1: 0.82, 2: 0.92, 3: 1.0, 4: 1.08 };
+
 export function drawDigimon(ctx, def, cx, cy, s, aim = 0, attacking = false) {
   const cv = spriteFor(def, attacking);
   // 타일(44px)을 넘지 않게 — 더 키우면 세로로 붙은 유닛끼리 겹친다
-  const dw = s * 1.24;
+  const dw = s * 1.24 * (TIER_SCALE[def.tier] ?? 1);
   const dh = dw * (H / W);
   const flip = Math.cos(aim) < -0.35 ? -1 : 1;   // 왼쪽을 겨누면 몸을 돌린다
 

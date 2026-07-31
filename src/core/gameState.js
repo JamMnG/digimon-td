@@ -50,7 +50,7 @@ export class GameState {
 
   reset() {
     const s = { ...BALANCE.start, ...(this.stage.start || {}) };
-    this.rng = makeStreams(this.seed);   // 소환·증강·드랍 스트림
+    this.rng = makeStreams(this.seed);   // 포획·특성·드랍 스트림
     this.phase = PHASE.PREP;
     this.bits = s.bits;
     this.life = s.life;
@@ -100,11 +100,11 @@ export class GameState {
     this.newBest = false;
     this.banner = null;             // 캔버스 중앙 배너 { text, sub, t, ttl }
 
-    // ── 증강 ──
+    // ── 특성 ──
     this.augments = [];
     this.mods = computeMods([]);
     this.rerolls = REROLLS;
-    this.offer = null;              // 진행 중인 증강 선택 { list, wave }
+    this.offer = null;              // 진행 중인 특성 선택 { list, wave }
     this.offeredWaves = [];
   }
 
@@ -133,7 +133,7 @@ export class GameState {
     return s / 3;
   }
 
-  // ── 증강 ──
+  // ── 특성 ──
   hasAugment(id) { return this.augments.includes(id); }
 
   openOffer(wave) {
@@ -155,7 +155,7 @@ export class GameState {
     applyInstant(this, a);
     if (this.offer) this.offeredWaves.push(this.offer.wave);
     this.offer = null;
-    this.pushLog(`증강 획득 — ${a.name}`);
+    this.pushLog(`특성 획득 — ${a.name}`);
     return true;
   }
 

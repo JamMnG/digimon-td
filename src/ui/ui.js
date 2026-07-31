@@ -285,7 +285,7 @@ export function initUI(state, handlers) {
   }
 
   // ── 대결 로비 ──
-  // 방 코드가 곧 시드다. 같은 코드로 들어오면 소환·증강·드랍 운이 똑같아진다.
+  // 방 코드가 곧 시드다. 같은 코드로 들어오면 포획·특성·드랍 운이 똑같아진다.
   let vsForm = { code: '', stageId: null, kind: 'peer' };
 
   function playableStages() {
@@ -309,7 +309,7 @@ export function initUI(state, handlers) {
     // ── 대결 중이 아님: 방 만들기 / 참가 ──
     if (vs.phase === VS.OFF) {
       box.appendChild(line('vs-lead',
-        '같은 맵을 <b>같은 운</b>으로 각자 돌립니다. 소환·증강·드랍이 둘 다 똑같이 나오고, 더 높은 웨이브까지 버틴 쪽이 이깁니다.'));
+        '같은 맵을 <b>같은 운</b>으로 각자 돌립니다. 포획·특성·드랍이 둘 다 똑같이 나오고, 더 높은 웨이브까지 버틴 쪽이 이깁니다.'));
 
       const open = playableStages();
       if (!vsForm.stageId || !open.some((st) => st.id === vsForm.stageId)) {
@@ -596,10 +596,10 @@ export function initUI(state, handlers) {
       <button class="gbtn tiny ghost" id="btn-release">배치 취소 (+${Math.floor(p.paid * 0.5)})</button>`);
     } else {
       rows.push(`<button class="gbtn go summon-btn" id="btn-summon" ${state.bits < cost ? 'disabled' : ''}>
-        <span class="sb-t">포켓몬 소환</span>
+        <span class="sb-t">몬스터볼 던지기</span>
         <span class="sb-c">◈ ${cost}</span>
       </button>
-      <p class="fine">무엇이 나올지는 무작위입니다. 소환할수록 비용이 오릅니다. (지금까지 ${state.summons}회)</p>`);
+      <p class="fine">무엇이 나올지는 무작위입니다. 던질수록 값이 오릅니다. (지금까지 ${state.summons}회)</p>`);
     }
     el.summonBox.innerHTML = rows.join('');
 
@@ -882,7 +882,7 @@ export function initUI(state, handlers) {
       `<span style="opacity:${1 - i * 0.13}">${t}</span>`).join('');
   }
 
-  // ── 증강 선택 ──
+  // ── 특성 선택 ──
   function drawAugmentOffer() {
     if (!state.offer) { el.augOverlay.classList.add('hidden'); return; }
     el.augOverlay.classList.remove('hidden');
@@ -949,7 +949,7 @@ export function initUI(state, handlers) {
       el.ovBody.textContent = [
         done ? '' : '상대가 아직 진행 중입니다. 끝나면 승패가 표시됩니다.',
         state.newBest ? '★ 최고 기록 갱신!' : '',
-        `증강: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
+        `특성: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
       ].filter(Boolean).join('\n');
       return;
     }
@@ -964,7 +964,7 @@ export function initUI(state, handlers) {
       <div><span>이 맵 최고</span><b>${rec.best}</b></div>`;
     el.ovBody.textContent = [
       state.newBest ? '★ 최고 기록 갱신!' : '',
-      `증강: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
+      `특성: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
       `최종 배치: ${state.towers.map((t) => t.def.name).join(', ') || '없음'}`,
     ].filter(Boolean).join('\n');
   }

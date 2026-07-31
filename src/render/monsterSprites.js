@@ -56,6 +56,7 @@ const BLUE_M   = '#4a90d9';
  */
 function blob(S, x, y, w, h, col, cut = 1) {
   S.shaded(x, y, w, h, col);
+  volume(S, x, y, w, h, col);
   for (let i = 0; i < cut; i++) {
     for (let j = 0; j < cut - i; j++) {
       S.set(x + i, y + j, null);
@@ -69,12 +70,26 @@ function blob(S, x, y, w, h, col, cut = 1) {
 /** 위만 둥근 덩어리 — 머리에 쓴다 */
 function dome(S, x, y, w, h, col, cut = 2) {
   S.shaded(x, y, w, h, col);
+  volume(S, x, y, w, h, col);
   for (let i = 0; i < cut; i++) {
     for (let j = 0; j < cut - i; j++) {
       S.set(x + i, y + j, null);
       S.set(x + w - 1 - i, y + j, null);
     }
   }
+}
+
+/**
+ * 왼쪽 위 하이라이트 + 오른쪽 아래 그늘.
+ * shaded() 는 위/아래만 나눠서 납작한 판으로 보인다. 이 두 줄이 붙어야
+ * 같은 도트가 "둥근 덩어리"로 읽힌다. 광원은 shading.js 와 같은 왼쪽 위.
+ */
+function volume(S, x, y, w, h, col) {
+  if (w < 4 || h < 4) return;
+  S.rect(x + 1, y + 1, w - 3, 1, shade(col, 0.5));      // 이마 하이라이트
+  S.set(x + 1, y + 2, shade(col, 0.34));
+  for (let j = 2; j < h - 1; j++) S.set(x + w - 1, y + j, shade(col, -0.44));
+  S.rect(x + 2, y + h - 1, w - 3, 1, shade(col, -0.5)); // 바닥 그늘
 }
 
 /** 머리와 몸 사이 그늘 — 이 한 줄이 실루엣을 갈라 준다 */
@@ -363,63 +378,67 @@ export const SPRITES = {
 
   // ══════════ 알통몬 라인 ══════════
   machop(S, C) {
-    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
-    blob(S, 6, 11, 10, 7, C.base);               // 넓은 가슴
-    S.shaded(3, 12, 3, 3, C.light); S.shaded(16, 12, 3, 3, C.light);
-    S.shaded(3, 15, 3, 3, C.base); S.shaded(16, 15, 3, 3, C.base);
-    S.rect(8, 13, 6, 1, shade(C.base, -0.35));
-    neck(S, 7, 10, 8, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);   // 머리 위 세 볏
-    eyes(S, 5);
-    S.rect(9, 8, 4, 1, INKY);
+    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
+    blob(S, 5, 11, 12, 8, C.base, 2);            // 넓은 가슴
+    S.shaded(2, 12, 4, 3, C.light); S.shaded(16, 12, 4, 3, C.light);
+    S.shaded(2, 15, 4, 4, C.base); S.shaded(16, 15, 4, 4, C.base);
+    S.rect(10, 12, 2, 6, shade(C.base, -0.4));   // 복근 가운데 선
+    S.rect(7, 15, 8, 1, shade(C.base, -0.35));
+    neck(S, 6, 10, 10, shade(C.base, -0.5));
+    dome(S, 5, 3, 12, 8, C.base, 3);
+    for (const x of [6, 10, 14] ) S.taper(x, 0, 3, 4, C.light);   // 머리 위 세 볏
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 3 });
+    S.rect(9, 9, 4, 1, INKY);
   },
 
   machoke(S, C) {
-    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
-    blob(S, 6, 11, 10, 7, C.base);
-    S.rect(6, 16, 10, 2, RED);                   // 빨간 벨트
+    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
+    blob(S, 4, 11, 14, 8, C.base, 2);
+    S.rect(4, 16, 14, 2, RED);                   // 빨간 벨트
     S.rect(10, 16, 2, 2, GOLD);
-    S.shaded(2, 12, 4, 3, C.light); S.shaded(16, 12, 4, 3, C.light);
-    S.shaded(2, 15, 3, 3, C.base); S.shaded(17, 15, 3, 3, C.base);
-    S.rect(8, 13, 6, 1, shade(C.base, -0.35));
-    neck(S, 7, 10, 8, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);
-    eyes(S, 5);
-    S.rect(9, 8, 4, 1, INKY);
+    S.shaded(1, 11, 4, 4, C.light); S.shaded(17, 11, 4, 4, C.light);
+    S.shaded(1, 15, 4, 4, C.base); S.shaded(17, 15, 4, 4, C.base);
+    S.rect(10, 12, 2, 4, shade(C.base, -0.4));
+    S.rect(6, 14, 10, 1, shade(C.base, -0.35));
+    neck(S, 6, 10, 10, shade(C.base, -0.5));
+    dome(S, 5, 3, 12, 8, C.base, 3);
+    for (const x of [6, 10, 14]) S.taper(x, 0, 3, 4, C.light);
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 3 });
+    S.rect(9, 9, 4, 1, INKY);
   },
 
   machamp(S, C) {
     // 팔 넷 — 괴력몬의 유일무이한 실루엣
-    S.shaded(3, 10, 3, 3, C.light); S.shaded(16, 10, 3, 3, C.light);
-    S.shaded(2, 13, 3, 4, C.base); S.shaded(17, 13, 3, 4, C.base);
-    S.shaded(0, 13, 3, 3, C.light); S.shaded(19, 13, 3, 3, C.light);
-    S.shaded(0, 16, 3, 4, C.base); S.shaded(19, 16, 3, 4, C.base);
-    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
-    blob(S, 6, 11, 10, 7, C.base);
-    S.rect(6, 16, 10, 2, RED);
+    S.shaded(2, 10, 4, 3, C.light); S.shaded(16, 10, 4, 3, C.light);
+    S.shaded(1, 13, 4, 4, C.base); S.shaded(17, 13, 4, 4, C.base);
+    S.shaded(0, 14, 3, 3, C.light); S.shaded(19, 14, 3, 3, C.light);
+    S.shaded(0, 17, 3, 4, C.base); S.shaded(19, 17, 3, 4, C.base);
+    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
+    blob(S, 4, 11, 14, 8, C.base, 2);
+    S.rect(4, 16, 14, 2, RED);
     S.rect(10, 16, 2, 2, GOLD);
-    neck(S, 7, 10, 8, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);
-    eyes(S, 5);
-    S.rect(9, 8, 4, 1, INKY);
+    S.rect(10, 12, 2, 4, shade(C.base, -0.4));
+    neck(S, 6, 10, 10, shade(C.base, -0.5));
+    dome(S, 5, 3, 12, 8, C.base, 3);
+    for (const x of [6, 10, 14]) S.taper(x, 0, 3, 4, C.light);
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 3 });
+    S.rect(9, 9, 4, 1, INKY);
   },
 
   mega_machamp(S, C) {
-    S.shaded(3, 9, 4, 3, C.light); S.shaded(15, 9, 4, 3, C.light);
-    S.shaded(2, 12, 4, 5, C.base); S.shaded(16, 12, 4, 5, C.base);
+    S.shaded(2, 9, 5, 3, C.light); S.shaded(15, 9, 5, 3, C.light);
+    S.shaded(1, 12, 5, 5, C.base); S.shaded(16, 12, 5, 5, C.base);
     S.shaded(0, 13, 3, 3, GOLD); S.shaded(19, 13, 3, 3, GOLD);
-    S.shaded(0, 16, 3, 4, C.base); S.shaded(19, 16, 3, 4, C.base);
-    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
-    blob(S, 6, 11, 10, 7, C.base);
-    S.rect(6, 16, 10, 2, GOLD);
+    S.shaded(0, 16, 3, 5, C.base); S.shaded(19, 16, 3, 5, C.base);
+    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
+    blob(S, 4, 11, 14, 8, C.base, 2);
+    S.rect(4, 16, 14, 2, GOLD);
     S.rect(10, 16, 2, 2, RED);
-    neck(S, 7, 10, 8, shade(C.base, -0.5));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, GOLD);
-    eyes(S, 5, { sclera: '#ffd0a0', pupil: '#5a1a0a' });
+    S.rect(10, 12, 2, 4, shade(C.base, -0.45));
+    neck(S, 6, 10, 10, shade(C.base, -0.55));
+    dome(S, 5, 3, 12, 8, C.base, 3);
+    for (const x of [6, 10, 14]) S.taper(x, 0, 3, 4, GOLD);
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 3, sclera: '#ffd0a0', pupil: '#5a1a0a' });
   },
 
   // ══════════ 발챙이 라인 ══════════
@@ -460,104 +479,110 @@ export const SPRITES = {
 
   // ══════════ 뚜꾸리 라인 ══════════
   tepig(S, C) {
-    S.shaded(18, 12, 3, 3, C.dark);
-    S.rect(19, 10, 2, 2, C.light);               // 꼬리 끝 동그라미
-    blob(S, 3, 11, 15, 7, C.base, 1);
-    for (const x of [4, 8, 13, 16]) blob(S, x, 17, 3, 5, '#3a2a24');
-    S.rect(3, 14, 15, 1, '#3a2a24');             // 검은 줄무늬
-    dome(S, 2, 4, 11, 9, C.base, 2);
-    S.rect(2, 11, 11, 1, '#3a2a24');
-    S.shaded(0, 7, 4, 4, '#f2c4a0');             // 노란 코
-    S.set(1, 8, INKY); S.set(3, 8, INKY);
-    S.taper(3, 1, 4, 4, C.dark); S.taper(9, 1, 4, 4, C.dark);   // 귀
-    eyes(S, 6, { lx: 5, rx: 10 });
+    S.rect(19, 11, 3, 2, C.dark);                // 말린 꼬리
+    S.rect(20, 9, 2, 2, C.light);
+    for (const x of [4, 8, 13, 17]) blob(S, x, 17, 3, 5, '#33241f');
+    blob(S, 3, 10, 16, 8, C.base, 2);            // 통통한 몸
+    S.rect(3, 13, 16, 2, '#33241f');             // 굵은 검은 띠
+    dome(S, 1, 3, 12, 10, C.base, 3);            // 큰 머리
+    S.rect(1, 11, 12, 2, '#33241f');
+    blob(S, 0, 7, 6, 5, '#f4c9a4', 1);           // 돼지 코 — 정면으로 크게
+    S.rect(1, 9, 2, 2, INKY); S.rect(4, 9, 2, 2, INKY);
+    S.taper(2, 0, 5, 4, C.dark); S.taper(8, 0, 5, 4, C.dark);   // 삼각 귀
+    eyes(S, 5, { lx: 4, rx: 9, w: 3, h: 3 });
   },
 
   pignite(S, C) {
-    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
-    blob(S, 6, 11, 10, 7, '#3a2a24');            // 검은 몸통
-    S.rect(6, 15, 10, 2, GOLD);
-    S.shaded(3, 12, 3, 3, C.light); S.shaded(16, 12, 3, 3, C.light);
-    S.shaded(3, 15, 3, 3, C.base); S.shaded(16, 15, 3, 3, C.base);
-    neck(S, 7, 10, 8, '#241a16');
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    S.shaded(8, 8, 6, 3, '#f2c4a0');             // 노란 코
-    S.set(9, 9, INKY); S.set(12, 9, INKY);
-    S.taper(4, 0, 4, 4, C.dark); S.taper(14, 0, 4, 4, C.dark);
-    eyes(S, 5);
+    blob(S, 5, 18, 5, 4, C.base); blob(S, 12, 18, 5, 4, C.base);
+    blob(S, 5, 11, 12, 8, '#33241f', 2);         // 검은 몸통
+    S.rect(5, 15, 12, 2, GOLD);                  // 금색 허리띠
+    S.shaded(2, 12, 4, 3, C.light); S.shaded(16, 12, 4, 3, C.light);
+    S.shaded(2, 15, 3, 4, C.base); S.shaded(17, 15, 3, 4, C.base);
+    neck(S, 6, 10, 10, '#1e1512');
+    dome(S, 5, 2, 12, 9, C.base, 3);
+    blob(S, 7, 7, 8, 4, '#f4c9a4', 1);           // 돼지 코
+    S.rect(8, 8, 2, 2, INKY); S.rect(12, 8, 2, 2, INKY);
+    S.taper(3, 0, 5, 4, C.dark); S.taper(14, 0, 5, 4, C.dark);
+    eyes(S, 4, { lx: 6, rx: 13, w: 3, h: 3 });
   },
 
   emboar(S, C) {
-    S.shaded(1, 11, 4, 4, C.base); S.shaded(17, 11, 4, 4, C.base);
-    S.shaded(1, 15, 4, 4, C.dark); S.shaded(17, 15, 4, 4, C.dark);
-    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
-    blob(S, 5, 11, 12, 8, C.base);
-    S.rect(5, 16, 12, 2, GOLD);
-    neck(S, 6, 10, 10, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    // 턱수염처럼 늘어진 불꽃 — 엠보아의 표식
-    S.taper(2, 6, 4, 6, FLAME_O); S.taper(16, 6, 4, 6, FLAME_O);
-    S.taper(3, 7, 2, 4, FLAME_Y); S.taper(17, 7, 2, 4, FLAME_Y);
-    S.shaded(8, 8, 6, 3, '#f2c4a0');
-    S.set(9, 9, INKY); S.set(12, 9, INKY);
-    eyes(S, 5, { sclera: '#ffe066' });
+    S.shaded(0, 11, 5, 5, C.base); S.shaded(17, 11, 5, 5, C.base);
+    S.shaded(0, 16, 4, 4, C.dark); S.shaded(18, 16, 4, 4, C.dark);
+    blob(S, 5, 18, 5, 4, C.dark); blob(S, 12, 18, 5, 4, C.dark);
+    blob(S, 4, 11, 14, 8, C.base, 2);            // 우람한 몸
+    S.rect(4, 16, 14, 2, GOLD);
+    neck(S, 5, 10, 12, shade(C.base, -0.5));
+    dome(S, 5, 2, 12, 9, C.base, 3);
+    // 턱수염처럼 늘어진 불꽃 — 엠보아의 표식. 얼굴 양옆으로 크게
+    S.taper(1, 4, 5, 8, FLAME_O); S.taper(16, 4, 5, 8, FLAME_O);
+    S.taper(2, 5, 3, 6, FLAME_Y); S.taper(17, 5, 3, 6, FLAME_Y);
+    blob(S, 7, 7, 8, 4, '#f4c9a4', 1);
+    S.rect(8, 8, 2, 2, INKY); S.rect(12, 8, 2, 2, INKY);
+    eyes(S, 4, { lx: 6, rx: 13, w: 3, h: 3, sclera: '#ffe066' });
   },
 
   // ══════════ 캐이시 라인 ══════════
   abra(S, C) {
-    S.shaded(16, 17, 5, 3, C.base);              // 긴 꼬리
-    blob(S, 6, 16, 10, 6, BROWN);                // 갈색 하체 갑판
-    blob(S, 7, 11, 8, 6, C.base);
-    S.shaded(4, 12, 3, 4, BROWN); S.shaded(15, 12, 3, 4, BROWN);
-    neck(S, 8, 10, 6, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    S.taper(3, 0, 5, 5, C.base);                 // 뾰족 여우 귀
-    S.taper(14, 0, 5, 5, C.base);
-    closedEyes(S, 6);                            // 늘 감고 있다
-    S.rect(9, 8, 4, 1, BROWN_D);
+    S.shaded(16, 18, 6, 3, C.base);              // 굵고 긴 꼬리
+    blob(S, 5, 15, 12, 7, BROWN, 2);             // 갈색 하체 갑판
+    blob(S, 7, 10, 8, 6, C.base);
+    S.shaded(3, 11, 4, 5, BROWN); S.shaded(15, 11, 4, 5, BROWN);
+    S.rect(6, 15, 10, 1, BROWN_D);               // 갑판 경계선
+    neck(S, 8, 9, 6, shade(C.base, -0.5));
+    dome(S, 5, 2, 12, 8, C.base, 3);             // 여우 머리
+    S.taper(7, 8, 8, 3, shade(C.base, 0.28));    // 뾰족 주둥이
+    S.taper(2, 0, 5, 6, C.base); S.taper(15, 0, 5, 6, C.base);   // 큰 삼각 귀
+    S.taper(3, 1, 3, 4, C.dark); S.taper(16, 1, 3, 4, C.dark);
+    closedEyes(S, 6, shade(C.base, -0.6));       // 늘 감고 있다
+    S.rect(9, 9, 4, 1, BROWN_D);
   },
 
   kadabra(S, C) {
-    S.shaded(16, 16, 5, 4, C.base);
+    S.shaded(17, 17, 5, 4, C.base);
     blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
     blob(S, 6, 11, 10, 7, C.base);
-    S.rect(7, 13, 8, 4, BROWN);                  // 가슴 갑판
-    S.shaded(3, 12, 3, 5, C.base); S.shaded(16, 12, 3, 5, C.base);
-    neck(S, 8, 10, 6, shade(C.base, -0.45));
-    dome(S, 6, 3, 10, 7, C.base, 2);
-    S.taper(3, 0, 5, 5, C.base); S.taper(14, 0, 5, 5, C.base);
-    S.rect(9, 3, 4, 2, RED); S.set(8, 4, RED); S.set(13, 4, RED);  // 이마의 별
-    eyes(S, 6, { h: 1 });
-    S.rect(5, 8, 4, 1, BROWN_D); S.rect(13, 8, 4, 1, BROWN_D);    // 콧수염
-    S.rect(1, 9, 1, 7, STEEL); S.rect(0, 7, 3, 2, STEEL);         // 쥔 스푼
+    blob(S, 7, 13, 8, 5, BROWN, 1);              // 가슴 갑판
+    S.shaded(2, 12, 4, 5, C.base); S.shaded(16, 12, 4, 5, C.base);
+    neck(S, 8, 10, 6, shade(C.base, -0.5));
+    dome(S, 5, 2, 12, 8, C.base, 3);
+    S.taper(7, 8, 8, 3, shade(C.base, 0.28));
+    S.taper(2, 0, 5, 6, C.base); S.taper(15, 0, 5, 6, C.base);
+    S.taper(3, 1, 3, 4, C.dark); S.taper(16, 1, 3, 4, C.dark);
+    S.rect(9, 2, 4, 2, RED); S.set(8, 3, RED); S.set(13, 3, RED);  // 이마의 별
+    eyes(S, 6, { lx: 6, rx: 13, w: 3, h: 2 });
+    S.rect(4, 9, 4, 1, BROWN_D); S.rect(14, 9, 4, 1, BROWN_D);    // 콧수염
+    S.rect(0, 10, 2, 7, STEEL); S.rect(0, 8, 4, 2, STEEL);        // 쥔 스푼
   },
 
   alakazam(S, C) {
     blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
     blob(S, 6, 11, 10, 7, C.base);
-    S.rect(7, 13, 8, 4, BROWN);
-    S.shaded(3, 12, 3, 5, C.base); S.shaded(16, 12, 3, 5, C.base);
-    neck(S, 8, 10, 6, shade(C.base, -0.45));
-    dome(S, 5, 2, 12, 8, C.base, 2);             // 더 큰 머리
-    S.taper(2, 0, 5, 4, C.base); S.taper(15, 0, 5, 4, C.base);
-    eyes(S, 5, { h: 1 });
-    // 길게 늘어진 흰 수염
-    S.taper(4, 7, 4, 5, WHITE); S.taper(14, 7, 4, 5, WHITE);
-    S.rect(0, 8, 1, 8, STEEL); S.rect(0, 6, 3, 2, STEEL);
-    S.rect(21, 8, 1, 8, STEEL); S.rect(19, 6, 3, 2, STEEL);
+    blob(S, 7, 13, 8, 5, BROWN, 1);
+    S.shaded(2, 12, 4, 5, C.base); S.shaded(16, 12, 4, 5, C.base);
+    neck(S, 8, 10, 6, shade(C.base, -0.5));
+    dome(S, 4, 1, 14, 9, C.base, 3);             // 더 큰 머리
+    S.taper(1, 0, 5, 5, C.base); S.taper(16, 0, 5, 5, C.base);
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 2 });
+    // 길게 늘어진 흰 수염 — 후딘의 표식
+    S.taper(2, 8, 6, 7, WHITE); S.taper(14, 8, 6, 7, WHITE);
+    S.taper(4, 9, 3, 5, OFFW); S.taper(15, 9, 3, 5, OFFW);
+    S.rect(0, 12, 2, 7, STEEL); S.rect(0, 10, 4, 2, STEEL);
+    S.rect(20, 12, 2, 7, STEEL); S.rect(18, 10, 4, 2, STEEL);
   },
 
   mega_alakazam(S, C) {
     blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
     blob(S, 6, 11, 10, 7, C.base);
-    S.rect(7, 13, 8, 4, BROWN);
-    neck(S, 8, 10, 6, shade(C.base, -0.5));
-    dome(S, 5, 2, 12, 8, C.base, 2);
-    eyes(S, 5, { h: 1, sclera: '#fff0c0' });
-    S.taper(3, 7, 5, 6, WHITE); S.taper(14, 7, 5, 6, WHITE);
+    blob(S, 7, 13, 8, 5, BROWN, 1);
+    neck(S, 8, 10, 6, shade(C.base, -0.55));
+    dome(S, 4, 1, 14, 9, C.base, 3);
+    eyes(S, 5, { lx: 6, rx: 13, w: 3, h: 2, sclera: '#fff0c0' });
+    S.taper(1, 8, 7, 8, WHITE); S.taper(14, 8, 7, 8, WHITE);
+    S.taper(3, 9, 4, 6, OFFW); S.taper(15, 9, 4, 6, OFFW);
     // 스푼 다섯 자루가 떠 있다
-    for (const [x, y] of [[0, 3], [21, 3], [1, 12], [20, 12], [10, 0]]) {
-      S.rect(x, y, 1, 5, STEEL); S.set(x, y, '#e8f0ff');
+    for (const [x, y] of [[0, 2], [20, 2], [0, 17], [20, 17], [10, 0]]) {
+      S.rect(x, y, 2, 5, STEEL); S.rect(x, y, 2, 1, '#e8f0ff');
     }
   },
 
@@ -734,43 +759,49 @@ export const SPRITES = {
 
   // ══════════ 이상해씨 라인 ══════════
   bulbasaur(S, C) {
-    for (const x of [4, 8, 13, 17]) blob(S, x, 17, 3, 5, C.dark);
-    blob(S, 3, 11, 16, 7, C.base, 2);            // 네발 몸통
-    blob(S, 7, 5, 10, 8, LEAF, 2);               // 등에 얹힌 초록 구근
-    S.rect(9, 5, 5, 1, shade(LEAF, 0.4));
-    dome(S, 0, 9, 9, 8, C.base, 2);              // 머리 (왼쪽 앞)
-    S.shaded(0, 13, 4, 3, shade(C.base, 0.22));
-    S.taper(1, 7, 4, 3, C.dark); S.taper(6, 7, 4, 3, C.dark);   // 귀
-    eyes(S, 11, { lx: 1, rx: 6, w: 3, h: 3, sclera: RED });
-    for (const [x, y] of [[5, 15], [12, 15], [16, 12]]) S.rect(x, y, 2, 2, shade(C.base, -0.38));
+    for (const x of [5, 9, 14, 17]) blob(S, x, 16, 4, 6, C.dark);
+    blob(S, 4, 10, 16, 7, C.base, 2);            // 네발 몸통
+    blob(S, 8, 3, 11, 9, LEAF, 3);               // 등의 초록 구근 — 크게
+    S.rect(10, 3, 6, 1, shade(LEAF, 0.45));
+    S.rect(9, 10, 9, 1, shade(LEAF, -0.4));
+    dome(S, 0, 8, 9, 9, C.base, 3);              // 머리를 왼쪽으로 확실히 뺀다
+    S.taper(0, 13, 5, 3, shade(C.base, 0.28));   // 주둥이
+    S.taper(0, 5, 4, 4, C.dark); S.taper(5, 5, 4, 4, C.dark);   // 귀
+    eyes(S, 10, { lx: 1, rx: 5, w: 3, h: 3, sclera: RED });
+    S.rect(1, 15, 5, 1, INKY);
+    for (const [x, y] of [[6, 14], [13, 14], [17, 11]]) S.rect(x, y, 2, 2, shade(C.base, -0.4));
   },
 
   ivysaur(S, C) {
-    for (const x of [4, 8, 13, 17]) blob(S, x, 17, 3, 5, C.dark);
-    blob(S, 3, 11, 16, 7, C.base, 2);
-    S.taper(1, 5, 7, 5, LEAF, 1); S.taper(14, 5, 7, 5, LEAF, 1);
-    S.taper(4, 2, 6, 5, LEAF_D, 1); S.taper(12, 2, 6, 5, LEAF_D, 1);
-    blob(S, 8, 2, 6, 7, PINK, 2);                // 분홍 꽃봉오리
-    S.rect(9, 2, 4, 1, shade(PINK, 0.35));
-    dome(S, 0, 10, 9, 7, C.base, 2);
-    S.shaded(0, 13, 4, 3, shade(C.base, 0.22));
-    eyes(S, 11, { lx: 1, rx: 6, w: 3, h: 3, sclera: RED });
-    for (const [x, y] of [[6, 16], [13, 16], [17, 13]]) S.rect(x, y, 2, 2, shade(C.base, -0.38));
+    for (const x of [5, 9, 14, 17]) blob(S, x, 16, 4, 6, C.dark);
+    blob(S, 4, 10, 16, 7, C.base, 2);
+    S.taper(2, 4, 8, 5, LEAF, 1); S.taper(13, 4, 8, 5, LEAF, 1);  // 잎 넉 장
+    S.taper(5, 1, 6, 5, LEAF_D, 1); S.taper(12, 1, 6, 5, LEAF_D, 1);
+    blob(S, 8, 1, 7, 8, PINK, 2);                // 분홍 꽃봉오리
+    S.rect(9, 1, 5, 1, shade(PINK, 0.4));
+    S.rect(10, 3, 3, 3, PINK_D);
+    dome(S, 0, 9, 9, 8, C.base, 3);
+    S.taper(0, 13, 5, 3, shade(C.base, 0.28));
+    eyes(S, 11, { lx: 1, rx: 5, w: 3, h: 3, sclera: RED });
+    S.rect(1, 15, 5, 1, INKY);
+    for (const [x, y] of [[6, 14], [13, 14], [17, 11]]) S.rect(x, y, 2, 2, shade(C.base, -0.4));
   },
 
   venusaur(S, C) {
-    // 등을 덮은 커다란 분홍 꽃
-    S.taper(0, 4, 22, 5, LEAF, 1);
-    S.taper(0, 1, 7, 5, LEAF_D, 1); S.taper(15, 1, 7, 5, LEAF_D, 1);
-    blob(S, 5, 0, 12, 6, PINK, 2);
-    S.rect(6, 0, 10, 1, shade(PINK, 0.4));
-    S.rect(9, 2, 4, 3, GOLD);                    // 꽃 중심
-    S.rect(2, 4, 5, 3, PINK_D); S.rect(15, 4, 5, 3, PINK_D);
-    blob(S, 3, 9, 16, 8, C.base, 2);
-    for (const x of [4, 8, 13, 17]) blob(S, x, 16, 3, 6, C.dark);
-    dome(S, 0, 10, 7, 7, C.base, 2);
+    // 등을 덮은 커다란 분홍 꽃 — 이상해꽃의 전부
+    S.taper(0, 5, 22, 5, LEAF, 1);
+    S.taper(0, 2, 8, 5, LEAF_D, 1); S.taper(14, 2, 8, 5, LEAF_D, 1);
+    blob(S, 4, 0, 14, 7, PINK, 2);
+    S.rect(6, 0, 10, 1, shade(PINK, 0.45));
+    S.rect(8, 2, 6, 4, GOLD);                    // 꽃 중심
+    S.rect(9, 3, 4, 2, '#fff0a0');
+    S.rect(1, 5, 6, 3, PINK_D); S.rect(15, 5, 6, 3, PINK_D);
+    blob(S, 4, 9, 16, 8, C.base, 2);
+    for (const x of [5, 9, 14, 17]) blob(S, x, 16, 4, 6, C.dark);
+    dome(S, 0, 10, 8, 8, C.base, 3);
+    S.taper(0, 14, 5, 3, shade(C.base, 0.28));
     eyes(S, 12, { lx: 0, rx: 4, w: 3, h: 3, sclera: RED });
-    S.rect(0, 16, 5, 1, shade(C.base, -0.38));
+    S.rect(1, 16, 5, 1, INKY);
   },
 
   // ══════════ 메탕 라인 ══════════

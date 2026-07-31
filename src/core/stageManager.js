@@ -17,7 +17,7 @@ import * as eco from '../economy/economyManager.js';
 import { MONSTERS } from '../data/monsters.js';
 import { pxToTile, tileToPx, isBuildable } from '../grid/pathGrid.js';
 
-/** 증강이 반영된 배치 비용 (도구는 할인 대상이 아니다) */
+/** 특성이 반영된 배치 비용 (도구는 할인 대상이 아니다) */
 export function towerCost(state, def) {
   if (def.prop) return def.cost;
   return Math.max(5, Math.round(def.cost * (1 + (state.mods?.towerCostMult || 0))));
@@ -83,7 +83,7 @@ export function placeTower(state, monsterId, px, py) {
 
 export function beginWave(state) {
   if (state.phase !== PHASE.PREP) return false;
-  if (state.offer) return false;      // 증강을 고르기 전에는 다음 웨이브가 시작되지 않는다
+  if (state.offer) return false;      // 특성을 고르기 전에는 다음 웨이브가 시작되지 않는다
 
   // 전투 중에 나가도 잃을 게 없도록, 웨이브를 여는 순간을 따로 떠 둔다.
   // 리그 참가비 청구 전 시점이라 이어하기하면 이 웨이브의 준비 페이즈로 정확히 돌아간다.
@@ -189,7 +189,7 @@ export function update(state, dtRaw) {
   }
 }
 
-/** 지정 웨이브에 도달하면 증강 3종을 제안한다 */
+/** 지정 웨이브에 도달하면 특성 3종을 제안한다 */
 export function maybeOfferAugment(state) {
   if (state.offer) return false;
   if (!OFFER_WAVES.includes(state.wave)) return false;

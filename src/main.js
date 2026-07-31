@@ -44,7 +44,7 @@ let runLive = false;
 // (이어하기로 되돌리면 같은 운을 두 번 쓰는 셈이 된다)
 const versus = createVersus();
 
-const HINT_DEFAULT = '소환(Q)으로 포켓몬을 뽑고, 풀숲 위 빈 칸을 클릭해 배치하세요.';
+const HINT_DEFAULT = '몬스터볼(Q)을 던져 포켓몬을 잡고, 풀숲 위 빈 칸을 클릭해 배치하세요.';
 
 const ui = initUI(state, {
   onPickShop: (id) => {
@@ -59,10 +59,10 @@ const ui = initUI(state, {
   onSummon: () => {
     const res = summon(state);
     if (!res.ok) { ui.setHint(res.reason, true); ui.invalidate(); return; }
-    // 소환된 포켓몬은 곧바로 배치 대기 상태가 된다
+    // 잡은 포켓몬은 곧바로 배치 대기 상태가 된다
     state.buildMonsterId = state.pending.id;
     state.buildDef = defOf(state.pending.id);
-    ui.setHint(`${state.buildDef.name} 소환! 풀숲 위 빈 칸을 클릭해 배치하세요.`);
+    ui.setHint(`${state.buildDef.name} 포획! 풀숲 위 빈 칸을 클릭해 배치하세요.`);
     flushSave();
     ui.invalidate();
   },
@@ -137,7 +137,7 @@ const ui = initUI(state, {
 
   onTakeAugment: (id) => {
     if (state.takeAugment(id)) {
-      ui.setHint('증강 획득 — 이번 판 내내 유지됩니다.');
+      ui.setHint('특성 획득 — 이번 판 내내 유지됩니다.');
       flushSave();
     }
     ui.invalidate();
