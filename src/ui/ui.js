@@ -12,7 +12,8 @@ import { randomRoomCode, normalizeRoomCode } from '../core/rng.js';
 import { BALANCE, TILE } from '../config/balance.js';
 import { effectiveStats } from '../combat/combatSystem.js';
 import { evolveOptions, evolveCost, sellValue } from '../evolution/evolutionTree.js';
-import { jogressOptions, jogressCost } from '../evolution/jogressTable.js';
+import { megaOptions, megaCost } from '../evolution/megaTable.js';
+import { beatenBy } from '../combat/attributeChart.js';
 import { previewWave } from '../enemy/enemySpawner.js';
 import { ITEM_NAME, ITEM_ICON, itemPrice } from '../economy/economyManager.js';
 import { SYNERGY_DEFS } from '../combat/synergy.js';
@@ -24,7 +25,7 @@ import { iconTag, iconURL } from '../render/itemArt.js';
 import { augmentById, TIER, OFFER_WAVES } from '../augments/augments.js';
 
 const $ = (id) => document.getElementById(id);
-const attrClass = { VACCINE: 'vaccine', DATA: 'data', VIRUS: 'virus' };
+const attrClass = { FIRE: 'fire', GRASS: 'grass', WATER: 'water' };
 
 export function initUI(state, handlers) {
   const el = {
@@ -44,6 +45,7 @@ export function initUI(state, handlers) {
     augRerolls: $('aug-rerolls'), reroll: $('btn-reroll'), chipAug: $('chip-aug'),
     ownedAug: $('owned-aug'),
     props: $('props'), rentChip: $('chip-rent'), adjBox: $('adj-rules'),
+    dps: $('chip-dps'), dpsPeak: $('chip-dps-peak'),
     summonBox: $('summon-box'), summonOdds: $('summon-odds'),
     icoChips: $('ico-chips'), icoDisks: $('ico-disks'), icoCores: $('ico-cores'),
     coach: $('coach'), coachStep: $('coach-step'), coachTitle: $('coach-title'),
@@ -136,6 +138,13 @@ export function initUI(state, handlers) {
     el.chipAug.textContent = state.augments.length;
     el.speed.textContent = `${state.speed}×`;
 
+    // 실시간 DPS — 실제로 들어간 피해의 최근 3초 평균이다.
+    // 전투가 끝나면 0으로 수렴하므로, 준비 페이즈에는 직전 최고치를 보여준다.
+    const live = Math.round(state.dps);
+    el.dps.textContent = state.phase === PHASE.COMBAT ? live.toLocaleString() : '—';
+    el.dpsPeak.textContent = state.peakDps > 0 ? ` 최고 ${Math.round(state.peakDps).toLocaleString()}` : '';
+    el.dps.parentElement.classList.toggle('live', state.phase === PHASE.COMBAT && live > 0);
+
     const inCombat = state.phase === PHASE.COMBAT;
     const due = rentDue(state);
     const nx = nextRent(state);
@@ -150,8 +159,8 @@ export function initUI(state, handlers) {
     } else if (due > 0) {
       el.start.disabled = state.phase !== PHASE.PREP || state.bits < due;
       el.start.textContent = state.bits < due
-        ? `유지비 ◈${due} 부족`
-        : `유지비 ◈${due} 납부 후 시작`;
+        ? `리그 참가비 ◈${due} 부족`
+        : `리그 참가비 ◈${due} 납부 후 시작`;
     } else {
       el.start.disabled = state.phase !== PHASE.PREP;
       el.start.textContent = '웨이브 시작';
@@ -215,7 +224,7 @@ export function initUI(state, handlers) {
       box.innerHTML = `
         <div>
           <div class="rz-t">이어하기 — ${st.name}</div>
-          <div class="rz-s">웨이브 ${run.wave} · 디지몬 ${run.towers.length}기 · 비트 ${run.bits} · ♥ ${run.life}</div>
+          <div class="rz-s">웨이브 ${run.wave} · 포켓몬 ${run.towers.length}기 · 코인 ${run.bits} · ♥ ${run.life}</div>
         </div>`;
       const b = document.createElement('button');
       b.className = 'gbtn gold';
@@ -469,7 +478,7 @@ export function initUI(state, handlers) {
       <div>
         <div class="rz-t">${st.name} — 처음부터 시작할까요?</div>
         <div class="rz-s">${same ? '저장된 판' : `${from ? from.name : '저장된 판'}`}
-          (웨이브 ${run.wave} · 디지몬 ${run.towers.length}기)이 지워집니다.</div>
+          (웨이브 ${run.wave} · 포켓몬 ${run.towers.length}기)이 지워집니다.</div>
       </div>`;
 
     const keep = document.createElement('button');
@@ -540,7 +549,7 @@ export function initUI(state, handlers) {
     parts.push('</div>');
 
     parts.push('<div class="bar">');
-    for (const a of ['VACCINE', 'DATA', 'VIRUS']) {
+    for (const a of ['FIRE', 'GRASS', 'WATER']) {
       const n = p.byAttr[a] || 0;
       if (!n) continue;
       parts.push(`<i style="width:${(n / p.total) * 100}%;background:${ATTR[a].color}"></i>`);
@@ -548,7 +557,7 @@ export function initUI(state, handlers) {
     parts.push('</div>');
 
     parts.push('<div class="mixlist">');
-    for (const a of ['VACCINE', 'DATA', 'VIRUS']) {
+    for (const a of ['FIRE', 'GRASS', 'WATER']) {
       const n = p.byAttr[a] || 0;
       if (!n) continue;
       parts.push(`<span class="mix ${attrClass[a]}">${ATTR[a].mark} ${ATTR[a].name} ${n}</span>`);
@@ -557,7 +566,7 @@ export function initUI(state, handlers) {
 
     const dominant = Object.entries(p.byAttr).sort((x, y) => y[1] - x[1])[0]?.[0];
     if (dominant) {
-      const counter = { VIRUS: 'VACCINE', DATA: 'VIRUS', VACCINE: 'DATA' }[dominant];
+      const counter = beatenBy(dominant);
       parts.push(`<p class="fine">주력이 <b class="${attrClass[dominant]}">${ATTR[dominant].name}</b> → <b class="${attrClass[counter]}">${ATTR[counter].name}</b> 타워가 ×1.5</p>`);
     }
 
@@ -582,12 +591,12 @@ export function initUI(state, handlers) {
         <span class="pn">${d.name}</span>
         <span class="ps"><b class="${attrClass[d.attr]}">${ATTR[d.attr].mark} ${ATTR[d.attr].name}</b>
           · ${FIELD[d.field].name} · ${KIND[d.kind]}</span>
-        <span class="ph">잔디 위 빈 칸을 클릭해 배치하세요</span>
+        <span class="ph">풀숲 위 빈 칸을 클릭해 배치하세요</span>
       </div>
       <button class="gbtn tiny ghost" id="btn-release">배치 취소 (+${Math.floor(p.paid * 0.5)})</button>`);
     } else {
       rows.push(`<button class="gbtn go summon-btn" id="btn-summon" ${state.bits < cost ? 'disabled' : ''}>
-        <span class="sb-t">디지몬 소환</span>
+        <span class="sb-t">포켓몬 소환</span>
         <span class="sb-c">◈ ${cost}</span>
       </button>
       <p class="fine">무엇이 나올지는 무작위입니다. 소환할수록 비용이 오릅니다. (지금까지 ${state.summons}회)</p>`);
@@ -607,7 +616,7 @@ export function initUI(state, handlers) {
       </div>`).join('');
   }
 
-  // ── 디지멘탈 (설치물) ──
+  // ── 도구 (도구) ──
   function drawProps() {
     el.props.innerHTML = '';
     for (const id of PROP_IDS) {
@@ -618,13 +627,13 @@ export function initUI(state, handlers) {
       b.innerHTML = `
         <span class="nm">${iconTag('prop', id, 26, d.color)} ${d.short}</span>
         <span class="sub">${d.desc}</span>
-        <span class="price">${d.cost} 비트</span>`;
+        <span class="price">${d.cost} 코인</span>`;
       b.addEventListener('click', () => handlers.onPickShop(id));
       el.props.appendChild(b);
     }
   }
 
-  // ── 교환소 ──
+  // ── 프렌들리샵 ──
   function drawExchange() {
     el.exchange.innerHTML = '';
     for (const item of ['chips', 'disks', 'cores']) {
@@ -641,34 +650,34 @@ export function initUI(state, handlers) {
     }
   }
 
-  // ── 선택한 타워 + 진화 / 죠그레스 ──
+  // ── 선택한 타워 + 진화 / 메가진화 ──
   function drawSelected() {
     const t = state.selectedTower();
     if (!t) {
       el.selected.className = 'muted';
-      el.selected.textContent = '필드의 디지몬을 클릭하세요.';
+      el.selected.textContent = '필드의 포켓몬을 클릭하세요.';
       return;
     }
     el.selected.className = '';
     const d = t.def;
 
-    // ── 설치물 ──
+    // ── 도구 ──
     if (isProp(d)) {
       const boosted = state.towers.filter((x) => !isProp(x.def)
         && Math.abs(x.c - t.c) <= 1 && Math.abs(x.r - t.r) <= 1 && x !== t);
       el.selected.innerHTML = `
         <div class="selhead">
           <span class="nm">${d.icon} ${d.name}</span>
-          <span class="tier">설치물</span>
+          <span class="tier">도구</span>
         </div>
         <p class="desc">${d.desc}</p>
         <div class="mixlist">
           <span class="mix">인접 강화 중 ${boosted.length}기</span>
           ${boosted.map((x) => `<span class="mix">${x.def.name}</span>`).join('')}
         </div>
-        <p class="fine">디지멘탈은 공격하지 않습니다. 무엇 옆에 놓느냐가 전부입니다.</p>
+        <p class="fine">도구는 공격하지 않습니다. 무엇 옆에 놓느냐가 전부입니다.</p>
         <div style="margin-top:12px">
-          <button class="gbtn tiny danger" id="btn-sell">매각 (+${sellValue(t, state)})</button>
+          <button class="gbtn tiny danger" id="btn-sell">방생 (+${sellValue(t, state)})</button>
         </div>`;
       const s0 = $('btn-sell');
       if (s0) s0.addEventListener('click', () => handlers.onSell());
@@ -677,7 +686,7 @@ export function initUI(state, handlers) {
 
     const adj = state.adjacency[t.uid] || { atk: 0, rate: 0, range: 0, splash: 0, crit: 0, notes: [] };
     const st = effectiveStats(t, state.synergy, state.mods, adj);
-    const tierName = d.jogress ? '죠그레스체' : ['', '성장기', '성숙기', '완전체', '궁극체'][d.tier];
+    const tierName = d.mega ? '메가진화' : ['', '기본', '1차진화', '최종진화', '메가진화'][d.tier];
 
     const tags = [];
     if (d.slowPct) tags.push(`둔화 ${Math.round(d.slowPct * 100)}% / ${d.slowDur}s`);
@@ -696,13 +705,17 @@ export function initUI(state, handlers) {
       <span class="tier">T${d.tier} ${tierName}</span>
     </div>`);
 
+    // 이 유닛이 판 전체 피해에서 차지하는 몫 — "누가 실제로 캐리하고 있나"
+    const share = state.totalDamage > 0 ? (t.damage / state.totalDamage) * 100 : 0;
     rows.push(`<div class="statgrid">
-      <span class="k">DPS</span><span class="v">${Math.round(st.dps)}</span>
+      <span class="k">DPS</span><span class="v">${Math.round(st.dps).toLocaleString()}</span>
       <span class="k">공격력</span><span class="v">${Math.round(st.atk)}</span>
       <span class="k">사거리</span><span class="v">${Math.round(st.range)}</span>
       <span class="k">공격속도</span><span class="v">${st.rate.toFixed(2)}/s</span>
       <span class="k">방식</span><span class="v">${KIND[d.kind]}</span>
-      <span class="k">누적 피해</span><span class="v">${Math.round(t.damage)}</span>
+      <span class="k">누적 피해</span><span class="v">${Math.round(t.damage).toLocaleString()}</span>
+      <span class="k">필드 기여</span><span class="v">${share.toFixed(1)}%</span>
+      <span class="k">필드 총합</span><span class="v">${Math.round(state.totalDamage).toLocaleString()}</span>
     </div>`);
 
     if (tags.length) rows.push(`<div class="mixlist">${tags.map((x) => `<span class="mix">${x}</span>`).join('')}</div>`);
@@ -725,25 +738,25 @@ export function initUI(state, handlers) {
 
     const opts = evolveOptions(state, t);
     if (opts.length === 0) {
-      rows.push(d.jogress
-        ? '<div class="final">◈ 죠그레스체 — 합체 진화의 최종형.</div>'
-        : '<div class="final">■ 궁극체 — 더 이상 진화할 수 없습니다.</div>');
+      rows.push(d.mega
+        ? '<div class="final">◈ 메가진화 — 이 판에서 도달할 수 있는 최종 형태입니다.</div>'
+        : '<div class="final">■ 최종진화 — 일반 진화는 여기까지입니다. 메가진화만 남았습니다.</div>');
     } else {
       const cost = evolveCost(t.monsterId, state);
-      rows.push(`<h2 style="margin-top:14px">진화 (${cost.bits} 비트 + ${iconTag('item', cost.item, 15)} ${ITEM_NAME[cost.item]} ${cost.amount})</h2>`);
+      rows.push(`<h2 style="margin-top:14px">진화 (${cost.bits} 코인 + ${iconTag('item', cost.item, 15)} ${ITEM_NAME[cost.item]} ${cost.amount})</h2>`);
       rows.push('<div class="evolve-list" id="evolist"></div>');
     }
 
-    const jopts = jogressOptions(state, t);
+    const jopts = megaOptions(state, t);
     if (jopts.length) {
-      const jc = jogressCost(state);
-      rows.push(`<h2 style="margin-top:14px">죠그레스 · 합체 진화 (${jc.bits} 비트 + ${iconTag('item', jc.item, 15)} ${ITEM_NAME[jc.item]} ${jc.amount})</h2>`);
+      const jc = megaCost(state);
+      rows.push(`<h2 style="margin-top:14px">메가진화 · 인접한 동료와의 유대 (${jc.bits} 코인 + ${iconTag('item', jc.item, 15)} ${ITEM_NAME[jc.item]} ${jc.amount})</h2>`);
       rows.push('<div class="evolve-list" id="joglist"></div>');
-      rows.push('<p class="fine">상하좌우로 맞닿은 완전체 2기가 1기로 합쳐집니다. 이 디지몬의 타일이 남습니다.</p>');
+      rows.push('<p class="fine">상하좌우로 맞닿은 완전체 2기가 1기로 합쳐집니다. 이 포켓몬의 타일이 남습니다.</p>');
     }
 
     rows.push(`<div style="margin-top:12px">
-      <button class="gbtn tiny danger" id="btn-sell">매각 (+${sellValue(t, state)})</button>
+      <button class="gbtn tiny danger" id="btn-sell">방생 (+${sellValue(t, state)})</button>
     </div>`);
 
     el.selected.innerHTML = rows.join('');
@@ -812,7 +825,7 @@ export function initUI(state, handlers) {
           </div>
           <div class="note">${o.to.desc}</div>
           ${o.ok ? '' : `<div class="why">${o.reason}</div>`}`;
-        if (o.ok) b.addEventListener('click', () => handlers.onJogress(o.partner.uid));
+        if (o.ok) b.addEventListener('click', () => handlers.onMega(o.partner.uid));
         jlist.appendChild(b);
       }
     }
@@ -836,7 +849,7 @@ export function initUI(state, handlers) {
     const entries = Object.entries(state.synergy);
     if (entries.length === 0) {
       el.synergy.className = 'muted';
-      el.synergy.textContent = '배치된 디지몬 없음';
+      el.synergy.textContent = '배치된 포켓몬 없음';
       return;
     }
     el.synergy.className = '';

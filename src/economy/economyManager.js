@@ -1,15 +1,15 @@
 // ─────────────────────────────────────────────────────────────
-// economyManager.js — 비트(재화)와 진화 아이템 수급
+// economyManager.js — 코인(재화)과 진화 아이템 수급
 // 진화 아이템은 "설계자가 공급량을 통제"하는 축이므로 여기 한 곳에 모은다.
 // ─────────────────────────────────────────────────────────────
 import { BALANCE } from '../config/balance.js';
 
-export const ITEM_NAME = { chips: '진화칩', disks: '진화디스크', cores: '디지코어' };
-export const ITEM_ICON = { chips: '🔹', disks: '💿', cores: '🔶' };
+export const ITEM_NAME = { chips: '이상한사탕', disks: '진화의돌', cores: '메가스톤' };
+export const ITEM_ICON = { chips: '🍬', disks: '💎', cores: '🔶' };
 
-// ── 교환소: 비트 → 진화 아이템 ──
-// 후반에 비트가 남아도 쓸 곳이 없으면 경제가 죽는다. 대신 가격이 살 때마다
-// 올라가서, "비트로 진화를 사는" 것이 무한 치트가 되지는 않게 한다.
+// ── 교환소: 코인 → 진화 아이템 ──
+// 후반에 코인이 남아도 쓸 곳이 없으면 경제가 죽는다. 대신 가격이 살 때마다
+// 올라가서, "코인으로 진화를 사는" 것이 무한 치트가 되지는 않게 한다.
 export function itemPrice(state, item) {
   const t = BALANCE.exchange[item];
   const raw = t.base + t.step * (state.purchases[item] || 0);
@@ -22,7 +22,7 @@ export function buyItem(state, item) {
   state.bits -= price;
   state.purchases[item] = (state.purchases[item] || 0) + 1;
   grantItem(state, item, 1);
-  state.pushLog(`교환소 — ${ITEM_NAME[item]} 구매 (−${price} 비트)`);
+  state.pushLog(`프렌들리샵 — ${ITEM_NAME[item]} 구매 (−${price} 코인)`);
   return true;
 }
 
@@ -63,7 +63,7 @@ export function onKill(state, enemy) {
   // 웨이브 편성이 결정적이라 정예 수도 같으므로 "n번째 정예"가 서로 맞물린다.
   if (enemy.cls === 'elite' && state.rng.drop.next() < dropChance) {
     grantItem(state, 'chips', 1);
-    state.pushLog(`정예 처치 — ${ITEM_NAME.chips} +1`);
+    state.pushLog(`에이스 격파 — ${ITEM_NAME.chips} +1`);
   }
 }
 

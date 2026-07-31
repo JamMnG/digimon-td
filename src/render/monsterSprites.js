@@ -369,7 +369,7 @@ export const SPRITES = {
     S.shaded(1, 13, 5, 3, '#6b6f7a');
   },
 
-  // ══ 죠그레스체 ══
+  // ══ 메가진화 ══
   omnimon(S, C) {
     angel(S, C, { wings: 2, wing: '#e8eef8', armor: '#f2f6ff', leg: '#cdd6e6', halo: false });
     S.shaded(6, 2, 10, 6, '#f2f6ff');              // 흰 기사 투구

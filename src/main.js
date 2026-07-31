@@ -13,7 +13,7 @@ import { pxToTile, isBuildable } from './grid/pathGrid.js';
 import { MONSTERS, STARTERS, validateMonsterData } from './data/monsters.js';
 import { stageById } from './data/stages.js';
 import { evolve, sellValue } from './evolution/evolutionTree.js';
-import { jogress, validateJogressData } from './evolution/jogressTable.js';
+import { megaEvolve, validateMegaData } from './evolution/megaTable.js';
 import * as eco from './economy/economyManager.js';
 import { createTutorial } from './tutorial/tutorial.js';
 import { summon, releasePending } from './core/summon.js';
@@ -21,7 +21,7 @@ import { createVersus, VS } from './net/versus.js';
 import { randomSeed } from './core/rng.js';
 
 // 개발용 데이터 검증
-const dataErrors = [...validateMonsterData(), ...validateJogressData()];
+const dataErrors = [...validateMonsterData(), ...validateMegaData()];
 if (dataErrors.length) console.warn('[data] 데이터 오류:\n' + dataErrors.join('\n'));
 
 const canvas = document.getElementById('board');
@@ -44,14 +44,14 @@ let runLive = false;
 // (이어하기로 되돌리면 같은 운을 두 번 쓰는 셈이 된다)
 const versus = createVersus();
 
-const HINT_DEFAULT = '소환(Q)으로 디지몬을 뽑고, 잔디 위 빈 칸을 클릭해 배치하세요.';
+const HINT_DEFAULT = '소환(Q)으로 포켓몬을 뽑고, 풀숲 위 빈 칸을 클릭해 배치하세요.';
 
 const ui = initUI(state, {
   onPickShop: (id) => {
     state.buildMonsterId = state.buildMonsterId === id ? null : id;
     state.buildDef = state.buildMonsterId ? defOf(state.buildMonsterId) : null;
     ui.setHint(state.buildMonsterId
-      ? `${defOf(id).name} 배치 — 잔디 위 빈 칸 클릭 (Esc 취소)`
+      ? `${defOf(id).name} 배치 — 풀숲 위 빈 칸 클릭 (Esc 취소)`
       : '배치를 취소했습니다.');
     ui.invalidate();
   },
@@ -59,10 +59,10 @@ const ui = initUI(state, {
   onSummon: () => {
     const res = summon(state);
     if (!res.ok) { ui.setHint(res.reason, true); ui.invalidate(); return; }
-    // 소환된 디지몬은 곧바로 배치 대기 상태가 된다
+    // 소환된 포켓몬은 곧바로 배치 대기 상태가 된다
     state.buildMonsterId = state.pending.id;
     state.buildDef = defOf(state.pending.id);
-    ui.setHint(`${state.buildDef.name} 소환! 잔디 위 빈 칸을 클릭해 배치하세요.`);
+    ui.setHint(`${state.buildDef.name} 소환! 풀숲 위 빈 칸을 클릭해 배치하세요.`);
     flushSave();
     ui.invalidate();
   },
@@ -71,7 +71,7 @@ const ui = initUI(state, {
     const back = releasePending(state);
     state.buildMonsterId = null;
     state.buildDef = null;
-    ui.setHint(`배치를 취소했습니다 (+${back} 비트)`);
+    ui.setHint(`배치를 취소했습니다 (+${back} 코인)`);
     flushSave();
     ui.invalidate();
   },
@@ -81,7 +81,7 @@ const ui = initUI(state, {
       ui.setHint(`${eco.ITEM_NAME[item]} 구매 완료`);
       flushSave();
     } else {
-      ui.setHint('비트가 부족합니다.', true);
+      ui.setHint('코인이 부족합니다.', true);
     }
     ui.invalidate();
   },
@@ -109,16 +109,16 @@ const ui = initUI(state, {
     ui.invalidate();
   },
 
-  onJogress: (partnerUid) => {
+  onMega: (partnerUid) => {
     const keep = state.selectedTower();
     const partner = state.towers.find((t) => t.uid === partnerUid);
     if (!keep || !partner) return;
     const names = [keep.def.name, partner.def.name];
-    if (jogress(state, keep, partner)) {
-      ui.setHint(`${names[0]} + ${names[1]} → ${keep.def.name} 죠그레스 성공!`);
+    if (megaEvolve(state, keep, partner)) {
+      ui.setHint(`${names[0]} + ${names[1]} → ${keep.def.name} 메가진화 성공!`);
       flushSave();
     } else {
-      ui.setHint('죠그레스 조건을 충족하지 못했습니다.', true);
+      ui.setHint('메가진화 조건을 충족하지 못했습니다.', true);
     }
     ui.invalidate();
   },
@@ -128,9 +128,9 @@ const ui = initUI(state, {
     if (!t) return;
     const refund = sellValue(t, state);
     eco.gain(state, refund);
-    state.pushLog(`${t.def.name} 매각 — 비트 +${refund}`);
+    state.pushLog(`${t.def.name} 방생 — 코인 +${refund}`);
     state.removeTower(t);
-    ui.setHint(`매각 완료 (+${refund} 비트)`);
+    ui.setHint(`방생 완료 (+${refund} 코인)`);
     flushSave();
     ui.invalidate();
   },
@@ -322,7 +322,7 @@ canvas.addEventListener('click', (ev) => {
   if (existing) {
     // 배치 대기 중에 찬 칸을 누른 건 오조작이다 — 탭을 옮기지 않고 알려만 준다
     if (state.pending) {
-      ui.setHint('그 칸에는 이미 유닛이 있습니다. 빈 잔디 칸을 클릭하세요.', true);
+      ui.setHint('그 칸에는 이미 유닛이 있습니다. 빈 풀숲 칸을 클릭하세요.', true);
       ui.invalidate();
       return;
     }
@@ -330,7 +330,7 @@ canvas.addEventListener('click', (ev) => {
     state.buildDef = null;
     state.selectedTowerUid = existing.uid;
     ui.setTab('unit');                    // 유닛을 '클릭'했을 때만 정보 탭을 연다
-    ui.setHint(`${existing.def.name} 선택 — 진화·죠그레스 선택지를 확인하세요.`);
+    ui.setHint(`${existing.def.name} 선택 — 진화·메가진화 선택지를 확인하세요.`);
     ui.invalidate();
     return;
   }
@@ -343,7 +343,7 @@ canvas.addEventListener('click', (ev) => {
       state.pushLog(`${res.def.name} 배치`);
       ui.setHint(`${res.def.name} 배치 완료. 계속 배치하려면 다시 클릭하세요.`);
       flushSave();
-      // 소환분은 1기뿐이고, 설치물은 비트가 남는 동안 연속 배치
+      // 소환분은 1기뿐이고, 도구는 코인이 남는 동안 연속 배치
       const def = defOf(state.buildMonsterId);
       if (!def.prop || state.bits < stage.towerCost(state, def)) {
         state.buildMonsterId = null;

@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────
-// attributeChart.js — 3속성 순환 상성 (보고서 3.2)
-//   백신 ──▶ 바이러스 ──▶ 데이터 ──▶ 백신
-// 화살표 방향이 "강하다".
+// attributeChart.js — 3속성 순환 상성
+//   불꽃 ──▶ 풀 ──▶ 물 ──▶ 불꽃
+// 화살표 방향이 "강하다". 원작 스타터 3각을 그대로 쓴다.
 // ─────────────────────────────────────────────────────────────
 import { BALANCE } from '../config/balance.js';
 
-const BEATS = { VACCINE: 'VIRUS', VIRUS: 'DATA', DATA: 'VACCINE' };
+const BEATS = { FIRE: 'GRASS', GRASS: 'WATER', WATER: 'FIRE' };
 
 /**
  * 공격자 속성 → 피격자 속성 피해 배율.

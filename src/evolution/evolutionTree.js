@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // evolutionTree.js — 진화 판정 (보고서 3.1, 최우선 시스템)
 //
-// 설계 의도: 진화 조건을 "비트 + 진화 아이템" 둘 다로 묶는다.
-//  - 비트만이면 돈 쌓기 게임이 되고
+// 설계 의도: 진화 조건을 "코인 + 진화 아이템" 둘 다로 묶는다.
+//  - 코인만이면 돈 쌓기 게임이 되고
 //  - 아이템만이면 운 게임이 된다
 // 아이템 공급량은 economyManager가 통제하므로, 진화 총량은 설계자가 쥐고
 // "어디에 쓸지"만 플레이어가 결정하게 된다.
@@ -36,7 +36,7 @@ export function evolveOptions(state, tower) {
       to,
       cost,
       ok: !lackBits && !lackItem,
-      reason: lackBits ? '비트 부족' : lackItem ? `${eco.ITEM_NAME[cost.item]} 부족` : '',
+      reason: lackBits ? '코인 부족' : lackItem ? `${eco.ITEM_NAME[cost.item]} 부족` : '',
       changes: describeChanges(from, to),
     };
   });
@@ -66,7 +66,7 @@ export function evolve(state, tower, toId) {
   return true;
 }
 
-/** 매각 환급액 */
+/** 방생 환급액 */
 export function sellValue(tower, state) {
   const rate = Math.min(1, BALANCE.sellRefund + (state?.mods?.sellRefundAdd || 0));
   return Math.floor(tower.invested * rate);

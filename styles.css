@@ -15,9 +15,9 @@
   --red: #ff7a63;
   --cream: #f6ecd6;
   --muted: #b8a67f;
-  --vaccine: #6fd0ff;
-  --data: #86e8ac;
-  --virus: #d9a2ff;
+  --ty-fire: #ff7043;
+  --ty-grass: #7fe0a0;
+  --ty-water: #5ab8ff;
   --ok: #9ae86b;
   --bad: #ff7a63;
 }
@@ -161,9 +161,9 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
   display: inline-block; border-radius: 5px; padding: 1px 6px;
   font-size: 11px; border: 2px solid currentColor; font-weight: 700;
 }
-.vaccine { color: var(--vaccine); }
-.data { color: var(--data); }
-.virus { color: var(--virus); }
+.fire { color: var(--ty-fire); }
+.grass { color: var(--ty-grass); }
+.water { color: var(--ty-water); }
 .field { color: #dcc9a0; }
 
 /* ── 선택 패널 ── */
@@ -555,3 +555,8 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
   .aug-grid { grid-template-columns: 1fr; }
   .result-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── 실시간 DPS 칩 ── */
+.chip.dps b { color: #7fe0a0; }
+.chip.dps small { color: var(--muted); font-size: 10px; font-weight: 700; margin-left: 2px; }
+.chip.dps.live { border-color: #4f8f5f; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px rgba(127,224,160,.25) inset; }

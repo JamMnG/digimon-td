@@ -1,18 +1,18 @@
 // ─────────────────────────────────────────────────────────────
-// synergy.js — 종족 시너지 (보고서 3.4)
-// 필드에 배치된 타워의 종족 수를 세어 2체/4체 보너스를 부여한다.
-// 진화 분기로 종족이 바뀌는 몬스터가 있어(예: 메탈그레이몬 → 기계형)
-// "어느 갈래로 진화할까"가 시너지 판단과 얽히게 만드는 게 목적.
+// synergy.js — 타입 시너지
+// 필드에 배치된 포켓몬의 타입 수를 세어 2체/4체 보너스를 부여한다.
+// 같은 타입을 모을수록 강해지므로, 볼에서 무엇이 나왔는지가
+// "어느 라인을 키울까"와 바로 얽힌다.
 // ─────────────────────────────────────────────────────────────
 import { FIELD } from '../data/monsters.js';
 
-// 각 종족: 임계치별 효과. 값은 배율 가산(0.12 = +12%) 또는 절대 가산.
+// 각 타입: 임계치별 효과. 값은 배율 가산(0.12 = +12%) 또는 절대 가산.
 export const SYNERGY_DEFS = {
   DRAGON:  { stat: 'atk',    label: '공격력',     steps: [[2, 0.12], [4, 0.30]], kind: 'mult' },
-  BEAST:   { stat: 'rate',   label: '공격 속도',  steps: [[2, 0.12], [4, 0.28]], kind: 'mult' },
-  ANGEL:   { stat: 'range',  label: '사거리',     steps: [[2, 0.10], [4, 0.22]], kind: 'mult' },
-  DEMON:   { stat: 'crit',   label: '치명타 확률', steps: [[2, 0.08], [4, 0.18]], kind: 'add' },
-  MACHINE: { stat: 'splash', label: '광역·관통',  steps: [[2, 0.15], [4, 0.34]], kind: 'mult' },
+  FIGHT:   { stat: 'rate',   label: '공격 속도',  steps: [[2, 0.12], [4, 0.28]], kind: 'mult' },
+  PSYCHIC:   { stat: 'range',  label: '사거리',     steps: [[2, 0.10], [4, 0.22]], kind: 'mult' },
+  GHOST:   { stat: 'crit',   label: '치명타 확률', steps: [[2, 0.08], [4, 0.18]], kind: 'add' },
+  STEEL: { stat: 'splash', label: '광역·관통',  steps: [[2, 0.15], [4, 0.34]], kind: 'mult' },
 };
 
 /** 배치된 타워 배열 → { FIELD_ID: { count, threshold, value, label } } */
@@ -46,7 +46,7 @@ export function computeSynergy(towers, mods) {
   return out;
 }
 
-/** 특정 타워에 적용될 시너지 값 (해당 종족의 활성 보너스만) */
+/** 특정 포켓몬에 적용될 시너지 값 (해당 타입의 활성 보너스만) */
 export function bonusFor(synergy, tower, stat) {
   const s = synergy[tower.def.field];
   if (!s || s.threshold === 0) return 0;

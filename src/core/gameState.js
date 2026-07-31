@@ -14,7 +14,7 @@ import { PROPS } from '../data/props.js';
 import { computeMods, applyInstant, augmentById, rollOffer, REROLLS } from '../augments/augments.js';
 import { makeStreams, dumpStreams, loadStreams, randomSeed } from './rng.js';
 
-/** 디지몬이든 설치물이든 id 하나로 정의를 찾는다 */
+/** 포켓몬이든 도구든 id 하나로 정의를 찾는다 */
 export const defOf = (id) => MONSTERS[id] || PROPS[id] || null;
 
 export const PHASE = { PREP: 'PREP', COMBAT: 'COMBAT', WIN: 'WIN', LOSE: 'LOSE' };
@@ -74,15 +74,23 @@ export class GameState {
     this.waveStart = null;          // 이번 웨이브를 시작한 순간의 스냅샷 (전투 중 이어하기용)
     this.noSave = false;            // 대결 판 — 이어하기로 같은 운을 다시 쓰지 못하게 막는다
 
+    // 실시간 DPS 측정 — 최근 3초를 0.25초 버킷 12칸으로 굴린다.
+    // 이론값(공격력×연사)이 아니라 실제로 들어간 피해라서, 상성·방어·놓친 샷이
+    // 전부 반영된다. "지금 이 배치가 실제로 얼마나 때리고 있나"를 보여주는 것이 목적.
+    this.dmgBuckets = new Array(12).fill(0);
+    this.dmgBucketT = 0;
+    this.totalDamage = 0;
+    this.peakDps = 0;
+
     this.synergy = {};
     this.adjacency = {};            // uid → 인접 보정
     this.rentPaid = [];             // 납부 완료한 유지비 웨이브
     this.lostTo = null;             // 'rent' 면 압류 패배
     this.selectedTowerUid = null;   // 필드에서 선택된 타워
-    this.buildMonsterId = null;     // 배치 예정 대상 (설치물 또는 소환된 디지몬)
+    this.buildMonsterId = null;     // 배치 예정 대상 (도구 또는 잡은 포켓몬)
     this.buildDef = null;
     this.summons = 0;               // 누적 소환 횟수 (비용 상승)
-    this.pending = null;            // 소환됐지만 아직 안 놓은 디지몬
+    this.pending = null;            // 잡았지만 아직 안 놓은 포켓몬
     this.speed = 1;                 // 1x / 2x / 3x
     this.log = [];
     this.shake = null;              // 화면 흔들림 { mag, t, ttl }
@@ -98,6 +106,31 @@ export class GameState {
     this.rerolls = REROLLS;
     this.offer = null;              // 진행 중인 증강 선택 { list, wave }
     this.offeredWaves = [];
+  }
+
+  // ── 실시간 DPS ──
+  /** 전투 시스템이 피해를 넣을 때마다 부른다 */
+  recordDamage(dmg) {
+    this.dmgBuckets[0] += dmg;
+    this.totalDamage += dmg;
+  }
+
+  /** 게임 시간이 흐를 때마다 창을 민다 */
+  advanceDpsWindow(dt) {
+    this.dmgBucketT += dt;
+    while (this.dmgBucketT >= 0.25) {
+      this.dmgBucketT -= 0.25;
+      this.dmgBuckets.pop();
+      this.dmgBuckets.unshift(0);
+    }
+    if (this.phase === PHASE.COMBAT) this.peakDps = Math.max(this.peakDps, this.dps);
+  }
+
+  /** 최근 3초 평균 실효 DPS */
+  get dps() {
+    let s = 0;
+    for (const b of this.dmgBuckets) s += b;
+    return s / 3;
   }
 
   // ── 증강 ──

@@ -1,37 +1,53 @@
 // ─────────────────────────────────────────────────────────────
-// summon.js — 랜덤 소환 (참고 이미지의 소환 버튼 방식)
+// summon.js — 몬스터볼 (랜덤 포획)
 //
-// 상점에서 원하는 성장기를 고르는 대신, 버튼 한 번에 무엇이 나올지 모른다.
+// 상점에서 원하는 포켓몬을 고르는 대신, 볼을 던져 무엇이 나올지 모른다.
 // 대신 "어디에 놓을지"는 그대로 플레이어가 정한다 — 인접 효과가 이 게임의
 // 핵심이라 배치까지 자동이면 퍼즐이 사라진다.
 //
-// 소환 비용은 부를 때마다 오른다. 그래서 "한 번 더 뽑을까, 진화에 쓸까"가
+// 볼 값은 던질수록 오른다. 그래서 "한 번 더 던질까, 진화에 쓸까"가
 // 매 웨이브 선택이 된다.
 // ─────────────────────────────────────────────────────────────
 import { BALANCE } from '../config/balance.js';
 import { MONSTERS } from '../data/monsters.js';
 
 /**
- * 소환 풀. weight 비율로 뽑는다.
- * jackpot 은 성숙기(T2)가 바로 나오는 낮은 확률 — 뽑는 맛을 위한 장치.
+ * 포획 풀. weight 비율로 뽑는다.
+ * 14개 라인의 기본형 전부가 후보이고, 낮은 확률로 1차진화체(T2)가 바로 나온다.
+ *
+ * 종족이 골고루 섞이도록 가중치를 맞췄다 — 한 종족만 계속 나오면
+ * 인접 퍼즐이 성립하지 않는다.
  */
 export const SUMMON_POOL = [
-  { id: 'agumon',  grade: 'common', weight: 30 },
-  { id: 'gabumon', grade: 'common', weight: 30 },
-  { id: 'patamon', grade: 'rare',   weight: 20 },
-  { id: 'impmon',  grade: 'epic',   weight: 14 },
-  // 잭팟 — 성숙기 직행
-  { id: 'greymon',   grade: 'jackpot', weight: 1.5 },
-  { id: 'garurumon', grade: 'jackpot', weight: 1.5 },
-  { id: 'angemon',   grade: 'jackpot', weight: 1.5 },
-  { id: 'devimon',   grade: 'jackpot', weight: 1.5 },
+  // ── 기본형 (T1) ──
+  { id: 'charmander', grade: 'common', weight: 9 },
+  { id: 'bulbasaur',  grade: 'common', weight: 9 },
+  { id: 'poliwag',    grade: 'common', weight: 9 },
+  { id: 'machop',     grade: 'common', weight: 9 },
+  { id: 'magnemite',  grade: 'common', weight: 9 },
+  { id: 'gastly',     grade: 'rare',   weight: 7 },
+  { id: 'dratini',    grade: 'rare',   weight: 7 },
+  { id: 'abra',       grade: 'rare',   weight: 7 },
+  { id: 'togepi',     grade: 'rare',   weight: 7 },
+  { id: 'tepig',      grade: 'rare',   weight: 6 },
+  { id: 'ralts',      grade: 'epic',   weight: 5 },
+  { id: 'litwick',    grade: 'epic',   weight: 5 },
+  { id: 'beldum',     grade: 'epic',   weight: 4 },
+  { id: 'gible',      grade: 'epic',   weight: 4 },
+
+  // ── 잭팟 — 1차진화 직행 ──
+  { id: 'charmeleon', grade: 'jackpot', weight: 0.9 },
+  { id: 'haunter',    grade: 'jackpot', weight: 0.9 },
+  { id: 'kadabra',    grade: 'jackpot', weight: 0.9 },
+  { id: 'metang',     grade: 'jackpot', weight: 0.8 },
+  { id: 'gabite',     grade: 'jackpot', weight: 0.8 },
 ];
 
 export const GRADE = {
-  common:  { name: '일반',   color: '#c7d0dd' },
-  rare:    { name: '희귀',   color: '#6fd0ff' },
-  epic:    { name: '영웅',   color: '#d9a2ff' },
-  jackpot: { name: '성숙기', color: '#ffd166' },
+  common:  { name: '노말볼',   color: '#c7d0dd' },
+  rare:    { name: '슈퍼볼',   color: '#6fd0ff' },
+  epic:    { name: '하이퍼볼', color: '#d9a2ff' },
+  jackpot: { name: '마스터볼', color: '#ffd166' },
 };
 
 const TOTAL = SUMMON_POOL.reduce((s, e) => s + e.weight, 0);
@@ -43,7 +59,7 @@ export function summonOdds() {
   }));
 }
 
-/** 이번 소환 비용 — 부를수록 오른다 */
+/** 이번 볼 값 — 던질수록 오른다 */
 export function summonCost(state) {
   const S = BALANCE.summon;
   const raw = S.base + S.step * (state.summons || 0);
@@ -56,19 +72,19 @@ export function rollSummon(rng) {
 }
 
 /**
- * 소환 시도. 성공하면 { id, grade } 를 state.pending 에 올려두고,
+ * 볼을 던진다. 성공하면 { id, grade } 를 state.pending 에 올려두고,
  * 플레이어가 타일을 클릭해 배치한다. 배치 전에는 다시 소환할 수 없다.
  */
 export function summon(state) {
-  if (state.pending) return { ok: false, reason: '먼저 소환한 디지몬을 배치하세요' };
+  if (state.pending) return { ok: false, reason: '먼저 잡은 포켓몬을 배치하세요' };
   const cost = summonCost(state);
-  if (state.bits < cost) return { ok: false, reason: `비트가 부족합니다 (${cost} 필요)` };
+  if (state.bits < cost) return { ok: false, reason: `코인이 부족합니다 (${cost} 필요)` };
 
   state.bits -= cost;
   state.summons = (state.summons || 0) + 1;
   const e = rollSummon(state.rng.summon);
   state.pending = { id: e.id, grade: e.grade, paid: cost };
-  state.pushLog(`소환 — ${MONSTERS[e.id].name} (${GRADE[e.grade].name})`);
+  state.pushLog(`포획! — ${MONSTERS[e.id].name} (${GRADE[e.grade].name})`);
   return { ok: true, entry: e, cost };
 }
 

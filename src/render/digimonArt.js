@@ -30,7 +30,7 @@ const DEFAULT_LOOK = {
   mark: 'none', glow: 'none',
 };
 
-const ATTR_COLOR = { VACCINE: '#4fc3f7', DATA: '#6ddf9c', VIRUS: '#c77dff' };
+const ATTR_COLOR = { FIRE: '#4fc3f7', GRASS: '#6ddf9c', WATER: '#c77dff' };
 
 const cache = new Map();
 
@@ -50,7 +50,7 @@ export function spriteFor(def, attack = false) {
     dark: shade(base, -0.34),
     deep: shade(base, -0.55),
     alt: L.alt || shade(base, -0.42),
-    ink: hexOf(def.jogress ? '#6b430a' : inkOf(base)),
+    ink: hexOf(def.mega ? '#6b430a' : inkOf(base)),
     // 흰색 계열끼리 뭉개지지 않게, 가슴 문장은 속성 색으로 찍는다
     attr: ATTR_COLOR[def.attr] || '#dbe4f0',
   };

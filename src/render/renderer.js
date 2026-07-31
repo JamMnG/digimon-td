@@ -13,7 +13,7 @@ import { ATTR } from '../data/monsters.js';
 import { ENEMIES } from '../data/enemies.js';
 import { tileKey, tileToPx } from '../grid/pathGrid.js';
 import { effectiveStats } from '../combat/combatSystem.js';
-import { readyPartners } from '../evolution/jogressTable.js';
+import { readyPartners } from '../evolution/megaTable.js';
 import { adjacentLinks } from '../combat/adjacency.js';
 import { THEMES, themeOf } from '../data/themes.js';
 import { shade, mix, hexOf, inkOf, volume, roundRect, outlinedText, setInk } from './shading.js';
@@ -105,7 +105,7 @@ function drawWorld(ctx, state, hover, now) {
   drawInstructorNPC(ctx, state, now);
   drawTutorialTiles(ctx, state, now);
   drawAdjacencyLinks(ctx, state, hover, now);
-  drawJogressLinks(ctx, state, now);
+  drawMegaLinks(ctx, state, now);
   drawTowers(ctx, state, now);
   drawEnemies(ctx, state, now);
   drawProjectiles(ctx, state);
@@ -660,8 +660,8 @@ function drawAdjacencyLinks(ctx, state, hover, now) {
   ctx.restore();
 }
 
-/** 선택한 완전체와 합체 가능한 인접 타워를 잇는다 — 죠그레스 가능 여부를 필드에서 바로 보이게 */
-function drawJogressLinks(ctx, state, now) {
+/** 선택한 최종진화와 합체 가능한 인접 타워를 잇는다 — 메가진화 가능 여부를 필드에서 바로 보이게 */
+function drawMegaLinks(ctx, state, now) {
   const sel = state.selectedTower();
   if (!sel) return;
   const links = readyPartners(state, sel);
@@ -690,7 +690,7 @@ function drawJogressLinks(ctx, state, now) {
   ctx.setLineDash([]);
 }
 
-/** 디지멘탈(설치물) — 종류마다 다른 모델. 공격하지 않으므로 '물건'처럼 그린다 */
+/** 도구 — 종류마다 다른 모델. 공격하지 않으므로 '물건'처럼 그린다 */
 function drawProp(ctx, t, state, now) {
   const d = t.def;
   const selected = state.selectedTowerUid === t.uid;
@@ -727,8 +727,8 @@ function drawTowers(ctx, state, now) {
     ctx.ellipse(t.x, t.y + 11, s * 0.50, s * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 죠그레스체는 금색 후광으로 한눈에 구분된다
-    if (d.jogress) {
+    // 메가진화는 금색 후광으로 한눈에 구분된다
+    if (d.mega) {
       const gg = ctx.createRadialGradient(cx, cy, s * 0.3, cx, cy, s * 1.15);
       gg.addColorStop(0, 'rgba(255, 214, 110, 0.55)');
       gg.addColorStop(1, 'rgba(255, 190, 60, 0)');
@@ -752,7 +752,7 @@ function drawTowers(ctx, state, now) {
     const gap = 6;
     const startX = t.x - ((d.tier - 1) * gap) / 2;
     for (let i = 0; i < d.tier; i++) {
-      ctx.fillStyle = d.jogress ? '#ffd166' : '#fff6d8';
+      ctx.fillStyle = d.mega ? '#ffd166' : '#fff6d8';
       ctx.strokeStyle = P.ink;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
@@ -1335,7 +1335,7 @@ function drawEffects(ctx, state) {
       ctx.globalAlpha = 1;
       outlinedText(ctx, '진화!', fx.x, fx.y - 34 - (1 - k) * 10,
         'bold 16px "Malgun Gothic", sans-serif', '#fff6d8', 4);
-    } else if (fx.type === 'jogress') {
+    } else if (fx.type === 'mega') {
       // 두 타일에서 빛이 모여들었다가 결과 타일에서 터진다
       const conv = Math.min(1, (1 - k) * 2.2);
       const burst = Math.max(0, (1 - k) * 2.2 - 1);
@@ -1363,7 +1363,7 @@ function drawEffects(ctx, state) {
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(fx.x, fx.y, 12 + burst * 40, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
-        outlinedText(ctx, '죠그레스!', fx.x, fx.y - 38 - burst * 12,
+        outlinedText(ctx, '메가진화!', fx.x, fx.y - 38 - burst * 12,
           'bold 18px "Malgun Gothic", sans-serif', '#ffd166', 4.5);
       }
     } else if (fx.type === 'leak') {

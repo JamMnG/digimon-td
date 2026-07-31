@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>디지몬 타워 디펜스</title>
+  <title>포켓몬 타워 디펜스</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <!-- ── 타이틀 / 스테이지 선택 ── -->
   <div class="screen" id="screen-stage">
     <div class="screen-inner">
-      <h1 class="title">디지몬 <em>타워 디펜스</em></h1>
-      <p class="subtitle">진화가 곧 업그레이드 — 키워서 진화시키는 타워 디펜스</p>
+      <h1 class="title">포켓몬 <em>타워 디펜스</em></h1>
+      <p class="subtitle">잡고 · 키우고 · 진화시키는 타워 디펜스</p>
 
       <div id="resume-box"></div>
 
@@ -46,7 +46,10 @@
         <div class="chip item"><i id="ico-disks"></i><b id="chip-disks">0</b></div>
         <div class="chip item"><i id="ico-cores"></i><b id="chip-cores">0</b></div>
         <div class="chip aug"><i>✦</i><b id="chip-aug">0</b></div>
-        <div class="chip rent"><i>🏠</i><b id="chip-rent">—</b></div>
+        <div class="chip rent"><i>🏅</i><b id="chip-rent">—</b></div>
+        <div class="chip dps" title="최근 3초 실효 DPS (상성·방어까지 반영된 실측값)">
+          <i>📊</i><b id="chip-dps">0</b><small id="chip-dps-peak"></small>
+        </div>
       </div>
 
       <div class="hud-actions">
@@ -75,7 +78,7 @@
         <div class="board-frame">
           <canvas id="board" width="880" height="528"></canvas>
         </div>
-        <div class="hint" id="hint">소환(Q)으로 디지몬을 뽑고, 잔디 위 빈 칸을 클릭해 배치하세요.</div>
+        <div class="hint" id="hint">몬스터볼(Q)을 던져 포켓몬을 잡고, 풀숲 위 빈 칸을 클릭해 배치하세요.</div>
       </section>
 
       <aside class="side">
@@ -91,7 +94,7 @@
             <div id="wave-preview"></div>
           </div>
           <div class="panel summon-panel">
-            <h2>소환</h2>
+            <h2>몬스터볼</h2>
             <div id="summon-box"></div>
             <details class="odds">
               <summary>등장 확률</summary>
@@ -99,45 +102,45 @@
             </details>
           </div>
           <div class="panel">
-            <h2>디지멘탈 · 설치물</h2>
+            <h2>포켓몬 도구</h2>
             <div class="shop one" id="props"></div>
-            <p class="fine">공격하지 않습니다. 인접한 8칸의 디지몬만 강화합니다.</p>
+            <p class="fine">공격하지 않습니다. 인접한 8칸의 포켓몬만 강화합니다.</p>
           </div>
           <div class="panel">
-            <h2>교환소 · 비트 → 진화 아이템</h2>
+            <h2>프렌들리샵 · 코인 → 진화 아이템</h2>
             <div class="shop three" id="exchange"></div>
-            <p class="fine">살 때마다 가격이 오릅니다. 남는 비트를 진화로 바꾸는 유일한 창구.</p>
+            <p class="fine">살 때마다 가격이 오릅니다. 남는 코인을 진화로 바꾸는 유일한 창구.</p>
           </div>
         </div>
 
         <div class="tabpane hidden" id="pane-unit">
           <div class="panel">
-            <h2>선택한 디지몬</h2>
-            <div id="selected-body" class="muted">필드의 디지몬을 클릭하세요.</div>
+            <h2>선택한 포켓몬</h2>
+            <div id="selected-body" class="muted">필드의 포켓몬을 클릭하세요.</div>
           </div>
         </div>
 
         <div class="tabpane hidden" id="pane-info">
           <div class="panel">
-            <h2>보유 증강</h2>
+            <h2>보유 특성</h2>
             <div id="owned-aug" class="muted">아직 없음</div>
           </div>
           <div class="panel">
             <h2>인접 효과 · 8방향</h2>
             <div id="adj-rules"></div>
-            <p class="fine">필드 전체 수를 세는 종족 시너지와 별개로, 바로 옆 8칸에만 적용됩니다.</p>
+            <p class="fine">필드 전체 수를 세는 타입 시너지와 별개로, 바로 옆 8칸에만 적용됩니다.</p>
           </div>
           <div class="panel">
-            <h2>종족 시너지</h2>
-            <div id="synergy" class="muted">배치된 디지몬 없음</div>
+            <h2>타입 시너지</h2>
+            <div id="synergy" class="muted">배치된 포켓몬 없음</div>
           </div>
           <div class="panel">
-            <h2>속성 상성</h2>
+            <h2>타입 상성</h2>
             <div class="chart">
-              <span class="attr vaccine">✚ 백신</span><span class="arrow">▶</span>
-              <span class="attr virus">☣ 바이러스</span><span class="arrow">▶</span>
-              <span class="attr data">◆ 데이터</span><span class="arrow">▶</span>
-              <span class="attr vaccine">백신</span>
+              <span class="attr fire">🔥 불꽃</span><span class="arrow">▶</span>
+              <span class="attr grass">🌿 풀</span><span class="arrow">▶</span>
+              <span class="attr water">💧 물</span><span class="arrow">▶</span>
+              <span class="attr fire">불꽃</span>
             </div>
             <p class="fine">화살표 방향 = 유리 (피해 ×1.5) / 역방향 = 불리 (×0.6)</p>
           </div>
@@ -164,11 +167,11 @@
     </div>
   </div>
 
-  <!-- ── 증강 선택 ── -->
+  <!-- ── 특성 선택 ── -->
   <div class="overlay hidden" id="aug-overlay">
     <div class="aug-box">
-      <div class="dialog-ribbon">웨이브 <span id="aug-wave">—</span> 증강</div>
-      <h2>증강을 하나 고르세요</h2>
+      <div class="dialog-ribbon">웨이브 <span id="aug-wave">—</span> 특성</div>
+      <h2>특성을 하나 고르세요</h2>
       <p class="aug-sub">이번 판 내내 유지됩니다. 고르기 전에는 다음 웨이브가 시작되지 않습니다.</p>
       <div class="aug-grid" id="aug-grid"></div>
       <div class="aug-foot">

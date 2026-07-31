@@ -161,7 +161,7 @@ export const ATTACK = {
     S.rect(0, 13, 1, 1, '#ffd166');
   },
 
-  // 죠그레스체
+  // 메가진화
   omnimon(S, C) {
     S.rect(17, 2, 2, 14, null);
     S.shaded(14, 8, 8, 2, '#f6faff');              // 그레이 소드 찌르기

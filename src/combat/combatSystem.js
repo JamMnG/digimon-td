@@ -215,7 +215,8 @@ function applyDamage(state, p, enemy) {
   if (executed) dmg *= C.executeMult;
 
   const floor = p.dmg * C.minDamageRatio;
-  if (!p.armorPierce) dmg = Math.max(dmg - enemy.armor, floor);
+  // 특성 '틀깨기'를 들면 모든 공격이 방어를 무시한다
+  if (!p.armorPierce && !state.mods?.armorPierceAll) dmg = Math.max(dmg - enemy.armor, floor);
 
   dmg = Math.round(dmg);
   enemy.hp -= dmg;
@@ -229,6 +230,7 @@ function applyDamage(state, p, enemy) {
 
   const owner = state.towers.find((t) => t.uid === p.ownerUid);
   if (owner) owner.damage += dmg;
+  state.recordDamage(dmg);
 
   if (p.slowPct > 0) {
     // 더 강한 둔화가 덮어쓴다

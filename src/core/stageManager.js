@@ -17,19 +17,19 @@ import * as eco from '../economy/economyManager.js';
 import { MONSTERS } from '../data/monsters.js';
 import { pxToTile, tileToPx, isBuildable } from '../grid/pathGrid.js';
 
-/** 증강이 반영된 배치 비용 (설치물은 할인 대상이 아니다) */
+/** 증강이 반영된 배치 비용 (도구는 할인 대상이 아니다) */
 export function towerCost(state, def) {
   if (def.prop) return def.cost;
   return Math.max(5, Math.round(def.cost * (1 + (state.mods?.towerCostMult || 0))));
 }
 
-// ── 네트워크 유지비 ──────────────────────────────────────────
+// ── 리그 참가비 ──────────────────────────────────────────
 const R = BALANCE.rent;
 
 /** n번째 청구액 (n은 1부터) */
 export const rentAmount = (n) => Math.round(R.base * Math.pow(R.growth, n - 1));
 
-/** 이번 웨이브에 청구되는 유지비. 없거나 이미 냈으면 0 */
+/** 이번 웨이브에 청구되는 리그 참가비. 없거나 이미 냈으면 0 */
 export function rentDue(state) {
   if (state.wave % R.everyN !== 0) return 0;
   if (state.rentPaid.includes(state.wave)) return 0;
@@ -45,25 +45,25 @@ export function nextRent(state) {
   return null;
 }
 
-/** 매각으로 끌어모을 수 있는 최대 비트 — 압류 판정에 쓴다 */
+/** 방생으로 끌어모을 수 있는 최대 코인 — 압류 판정에 쓴다 */
 export function liquidValue(state) {
   return state.towers.reduce((s, t) => s + sellValue(t, state), 0);
 }
 
 /** 타워 배치 시도 → 배치된 타워 또는 실패 사유 문자열 */
 /**
- * 배치. 소환된 디지몬(state.pending)은 이미 값을 치렀으므로 추가 비용이 없고,
- * 설치물은 여기서 비용을 낸다.
+ * 배치. 소환된 포켓몬(state.pending)은 이미 값을 치렀으므로 추가 비용이 없고,
+ * 도구는 여기서 비용을 낸다.
  */
 export function placeTower(state, monsterId, px, py) {
   const def = MONSTERS[monsterId] || PROPS[monsterId];
   if (!def) return '알 수 없는 대상입니다';
 
   const fromSummon = state.pending && state.pending.id === monsterId;
-  if (!def.prop && !fromSummon) return '디지몬은 소환으로만 얻을 수 있습니다';
+  if (!def.prop && !fromSummon) return '포켓몬은 소환으로만 얻을 수 있습니다';
 
   const { c, r } = pxToTile(px, py);
-  if (!isBuildable(state.path, state.occupied, c, r)) return '잔디 위 빈 칸에만 놓을 수 있습니다';
+  if (!isBuildable(state.path, state.occupied, c, r)) return '풀숲 위 빈 칸에만 놓을 수 있습니다';
 
   let cost = 0;
   if (fromSummon) {
@@ -71,7 +71,7 @@ export function placeTower(state, monsterId, px, py) {
     state.pending = null;
   } else {
     cost = towerCost(state, def);
-    if (state.bits < cost) return '비트가 부족합니다';
+    if (state.bits < cost) return '코인이 부족합니다';
     eco.spend(state, cost);
   }
 
@@ -86,17 +86,17 @@ export function beginWave(state) {
   if (state.offer) return false;      // 증강을 고르기 전에는 다음 웨이브가 시작되지 않는다
 
   // 전투 중에 나가도 잃을 게 없도록, 웨이브를 여는 순간을 따로 떠 둔다.
-  // 유지비 청구 전 시점이라 이어하기하면 이 웨이브의 준비 페이즈로 정확히 돌아간다.
+  // 리그 참가비 청구 전 시점이라 이어하기하면 이 웨이브의 준비 페이즈로 정확히 돌아간다.
   state.waveStart = state.serialize();
 
-  // 유지비는 웨이브를 시작하는 순간 청구된다 — 준비 페이즈 내내 매각해 마련할 수 있다
+  // 리그 참가비는 웨이브를 시작하는 순간 청구된다 — 준비 페이즈 내내 방생해 마련할 수 있다
   const due = rentDue(state);
   if (due > 0) {
     if (state.bits < due) return false;
     eco.spend(state, due);
     state.rentPaid.push(state.wave);
-    state.pushLog(`네트워크 유지비 납부 — 비트 −${due}`);
-    state.showBanner('유지비 납부', `−${due} 비트`, 1.4);
+    state.pushLog(`리그 참가비 납부 — 코인 −${due}`);
+    state.showBanner('리그 참가비 납부', `−${due} 코인`, 1.4);
   }
 
   state.phase = PHASE.COMBAT;
@@ -123,6 +123,7 @@ export function update(state, dtRaw) {
 
   state.synergy = computeSynergy(state.towers.filter((t) => !t.def.prop), state.mods);
   state.adjacency = computeAdjacency(state);
+  state.advanceDpsWindow(dt);
   combat.updateEffects(state, raw * Math.max(0.35, state.speed));
 
   if (state.combo.t > 0) {
@@ -140,12 +141,12 @@ export function update(state, dtRaw) {
 
   if (state.phase === PHASE.PREP) {
     if (state.clearDelay > 0) state.clearDelay -= dt;
-    // 압류: 유지비를 낼 비트도, 팔아서 마련할 자산도 없으면 판이 끝난다
+    // 압류: 리그 참가비를 낼 코인도, 팔아서 마련할 자산도 없으면 판이 끝난다
     const due = rentDue(state);
     if (due > 0 && state.bits + liquidValue(state) < due) {
       state.phase = PHASE.LOSE;
       state.lostTo = 'rent';
-      state.pushLog(`유지비 ${due} 비트를 마련하지 못해 압류되었습니다.`);
+      state.pushLog(`리그 참가비 ${due} 코인을 마련하지 못해 압류되었습니다.`);
       finishRun(state);
     }
   }
@@ -173,7 +174,7 @@ export function update(state, dtRaw) {
     const inc = propIncome(state);
     if (inc > 0) {
       eco.gain(state, inc);
-      state.pushLog(`설치물 수익 — 비트 +${inc}`);
+      state.pushLog(`도구 수익 — 코인 +${inc}`);
     }
     if (state.wave >= state.totalWaves) {
       state.phase = PHASE.WIN;

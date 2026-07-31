@@ -11,9 +11,9 @@ export const BALANCE = {
   start: {
     bits: 430,
     life: 20,
-    chips: 2,   // 진화칩   (T1→T2)
-    disks: 0,   // 진화디스크 (T2→T3)
-    cores: 0,   // 디지코어  (T3→T4)
+    chips: 2,   // 이상한사탕   (T1→T2)
+    disks: 0,   // 진화의돌 (T2→T3)
+    cores: 0,   // 메가스톤  (T3→T4)
   },
 
   // 진화 비용 — [비트, 아이템종류, 아이템수]
@@ -23,10 +23,10 @@ export const BALANCE = {
     4: { bits: 450, item: 'cores', amount: 1 },
   },
 
-  // 죠그레스(합체 진화) — 인접한 완전체 2기 → 죠그레스체 1기
-  // 슬롯 2칸을 1칸으로 줄이는 대신 개별 궁극체보다 강한 유닛을 얻는다.
-  // 디지코어를 2개 요구해서 "궁극체 2기 vs 죠그레스체 1기"가 실제 선택이 되게 한다.
-  jogress: { bits: 620, item: 'cores', amount: 2 },
+  // 메가진화 — 인접한 최종진화 2기 → 메가 1기 (원작의 "유대로 발동"을 옮긴 것)
+  // 슬롯 2칸을 1칸으로 줄이는 대신 개별 메가보다 강한 유닛을 얻는다.
+  // 메가스톤을 2개 요구해서 "최종진화 2기 vs 메가진화 1기"가 실제 선택이 되게 한다.
+  mega: { bits: 620, item: 'cores', amount: 2 },
 
   // 네트워크 유지비 (참고작의 월세) — everyN 웨이브마다 청구되고, 못 내면 압류(패배).
   // 화력에 전부 쏟으면 유지비를 못 내고, 유지비만 챙기면 방어가 뚫린다.
@@ -50,14 +50,14 @@ export const BALANCE = {
   economy: {
     waveClearBase: 24,     // 웨이브 클리어 보너스 = base + wave*perWave
     waveClearPerWave: 5,
-    eliteChipChance: 0.35, // 정예 처치 시 진화칩 드랍 확률
+    eliteChipChance: 0.35, // 정예 처치 시 이상한사탕 드랍 확률
   },
 
   // 웨이브 클리어 시 확정 아이템 지급 규칙
   itemGrant: {
-    chipEveryWave: 1,   // 매 웨이브 진화칩 +1
-    diskEveryN: 3,      // 3웨이브마다 진화디스크 +1
-    coreEveryN: 10,     // 10웨이브(보스)마다 디지코어 +1
+    chipEveryWave: 1,   // 매 웨이브 이상한사탕 +1
+    diskEveryN: 3,      // 3웨이브마다 진화의돌 +1
+    coreEveryN: 10,     // 10웨이브(보스)마다 메가스톤 +1
   },
 
   // 적 스케일링
@@ -74,7 +74,7 @@ export const BALANCE = {
     scaleBosses: false,
   },
 
-  // 속성 상성 배율 (백신▶바이러스▶데이터▶백신)
+  // 타입 상성 배율 (불꽃▶풀▶물▶불꽃)
   attrMult: { strong: 1.5, weak: 0.6, neutral: 1.0 },
 
   // 전투
