@@ -24,7 +24,18 @@ try {
   }
 } catch { /* 저장이 막힌 브라우저 — 그냥 넘어간다 */ }
 
-const emptyMeta = () => ({ v: 1, stages: {}, settings: { speed: 1 } });
+// dex: { [monsterId]: 1|2|4 비트마스크 } — 잡음(1) / 진화시킴(2) / 이로치로 봄(4)
+// 셋을 따로 세는 이유는 도감에서 "봤다"와 "키웠다"를 구분해 보여주기 위함이다.
+export const DEX_CAUGHT = 1;
+export const DEX_GROWN = 2;
+export const DEX_SHINY = 4;
+
+const emptyMeta = () => ({
+  v: 2,
+  stages: {},        // { [stageId]: { best, cleared, runs, endless } }
+  dex: {},           // { [monsterId]: 비트마스크 }
+  settings: { speed: 1 },
+});
 
 function read(key) {
   try {
@@ -57,8 +68,11 @@ let meta = null;
 export function loadMeta() {
   if (meta) return meta;
   meta = read(META_KEY) || emptyMeta();
+  // v1 → v2: 도감이 없던 시절의 저장에도 빈 칸을 만들어 준다
   if (!meta.stages) meta.stages = {};
+  if (!meta.dex) meta.dex = {};
   if (!meta.settings) meta.settings = { speed: 1 };
+  meta.v = 2;
 
   // 구버전(단일 최고 기록)에서 넘어온 값을 1스테이지 기록으로 옮긴다
   try {
@@ -76,19 +90,51 @@ export function loadMeta() {
 
 export function stageRecord(stageId) {
   const m = loadMeta();
-  if (!m.stages[stageId]) m.stages[stageId] = { best: 0, cleared: false, runs: 0 };
+  if (!m.stages[stageId]) m.stages[stageId] = { best: 0, cleared: false, runs: 0, endless: 0 };
+  if (m.stages[stageId].endless === undefined) m.stages[stageId].endless = 0;
   return m.stages[stageId];
 }
 
-/** 판이 끝났을 때 기록 갱신. 최고 기록을 새로 세웠으면 true */
-export function recordRun(stageId, reachedWave, won) {
+/**
+ * 판이 끝났을 때 기록 갱신. 최고 기록을 새로 세웠으면 true.
+ * endless 판은 정규 기록과 따로 센다 — 무한 모드 200웨이브가 정규 30웨이브
+ * 클리어 기록을 덮어쓰면 해금 조건이 이상해진다.
+ */
+export function recordRun(stageId, reachedWave, won, endless = false) {
   const rec = stageRecord(stageId);
   rec.runs++;
+  if (endless) {
+    const isBest = reachedWave > rec.endless;
+    if (isBest) rec.endless = reachedWave;
+    write(META_KEY, meta);
+    return isBest;
+  }
   if (won) rec.cleared = true;
   const isBest = reachedWave > rec.best;
   if (isBest) rec.best = reachedWave;
   write(META_KEY, meta);
   return isBest;
+}
+
+// ── 도감 ──
+/** 잡거나 진화시킬 때마다 호출. 새로 채워진 칸이 있으면 true */
+export function dexMark(monsterId, flags) {
+  const m = loadMeta();
+  const before = m.dex[monsterId] || 0;
+  const after = before | flags;
+  if (after === before) return false;
+  m.dex[monsterId] = after;
+  write(META_KEY, m);
+  return true;
+}
+
+export const dexOf = (monsterId) => loadMeta().dex[monsterId] || 0;
+export const dexAll = () => loadMeta().dex;
+
+// ── 지방 배지 ──
+/** 한 지방의 스테이지를 전부 클리어했으면 배지를 가진 것으로 본다 */
+export function hasBadge(region, stagesOfRegion) {
+  return stagesOfRegion.length > 0 && stagesOfRegion.every((s) => stageRecord(s.id).cleared);
 }
 
 export const isTutorialDone = () => !!loadMeta().settings.tutorialDone;

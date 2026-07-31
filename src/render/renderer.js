@@ -737,7 +737,7 @@ function drawTowers(ctx, state, now) {
     }
 
     // ── 몬스터별 실루엣 (반동 중에는 공격 포즈 프레임) ──
-    drawUnit(ctx, d, cx, cy, s * (1 + kick * 0.06), t.aim, t.recoil > 0.3);
+    drawUnit(ctx, d, cx, cy, s * (1 + kick * 0.06), t.aim, t.recoil > 0.3, t.shiny);
 
     // 발사 반동은 몸 전체를 뒤로 밀어 표현했으므로 여기선 속성 젬만 얹는다
     ctx.beginPath();

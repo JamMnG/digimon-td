@@ -47,7 +47,7 @@ export const PROPS = {
   // ── 경제 도구 — 화력을 포기하고 칸을 돈으로 바꾼다 ──
   amuletcoin: {
     name: '부적금화', short: '금화', tier: 0, atk: 0, prop: true,
-    icon: '🪙', color: '#ffd166', cost: 200,
+    icon: '💰', color: '#ffd166', cost: 200,
     income: 30,
     desc: '웨이브를 클리어할 때마다 코인 +30. 인접과 무관.',
   },

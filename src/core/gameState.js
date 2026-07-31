@@ -13,6 +13,7 @@ import { PROPS } from '../data/props.js';
 
 import { computeMods, applyInstant, augmentById, rollOffer, REROLLS } from '../augments/augments.js';
 import { makeStreams, dumpStreams, loadStreams, randomSeed } from './rng.js';
+import { MODE, MODIFIERS, ENDLESS_WAVES, endlessStartWave, modifierScale, modifierMods, hasFlag, scoreMult } from './modes.js';
 
 /** 포켓몬이든 도구든 id 하나로 정의를 찾는다 */
 export const defOf = (id) => MONSTERS[id] || PROPS[id] || null;
@@ -32,30 +33,49 @@ export class GameState {
    * 스테이지 교체 + 초기화.
    * seed 를 주면 그 운으로 시작한다 — 대결 모드에서 둘이 같은 값을 쓴다.
    */
-  loadStage(stage, seed = null) {
+  loadStage(stage, seed = null, opts = {}) {
     if (seed != null) this.seed = seed;
+    // 안 넘기면 '직전 판 그대로'가 아니라 '기본값'이다.
+    // 예전에는 엔드리스를 하고 나서 대결에 들어가면 999웨이브 판이 열렸다.
+    this.mode = opts.mode || MODE.NORMAL;
+    this.modifiers = [...(opts.modifiers || [])];
+    this.perks = [...(opts.perks || [])];
     this.stage = stage;
     this.path = buildPath(stage.waypoints, stage.platforms);
     this.reset();
   }
 
   get totalWaves() {
+    if (this.mode === MODE.ENDLESS) return ENDLESS_WAVES;
     return this.stage.waves ?? BALANCE.wave.total;
   }
 
+  /** 엔드리스인가 — 저장·기록·결과 문구가 갈린다 */
+  get isEndless() { return this.mode === MODE.ENDLESS; }
+
+  /** 이 판의 기록 배수 (도전 규칙의 합) */
+  get scoreMult() { return scoreMult(this.modifiers); }
+
   /** 이 스테이지의 적 배율 (맵마다 난이도가 다르다) */
   get scale() {
-    return { hp: 1, speed: 1, bounty: 1, ...(this.stage.scale || {}) };
+    const base = { hp: 1, speed: 1, bounty: 1, ...(this.stage.scale || {}) };
+    const m = modifierScale(this.modifiers);
+    return { hp: base.hp * m.hp, speed: base.speed * m.speed, bounty: base.bounty * m.bounty };
   }
 
   reset() {
     const s = { ...BALANCE.start, ...(this.stage.start || {}) };
+    // 모드·도전 규칙·배지 특전은 loadStage 에서 들어오고, 없으면 기본값이다
+    this.mode = this.mode || MODE.NORMAL;
+    this.modifiers = this.modifiers || [];
+    this.perks = this.perks || [];
     this.rng = makeStreams(this.seed);   // 포획·특성·드랍 스트림
     this.phase = PHASE.PREP;
     this.bits = s.bits;
     this.life = s.life;
     this.maxLife = s.life;
-    this.wave = 1;
+    // 엔드리스는 정규 후반부터 — 앞부분을 다시 시키면 지루하기만 하다
+    this.wave = this.mode === MODE.ENDLESS ? endlessStartWave(this.stage) : 1;
     this.kills = 0;
     this.leaked = 0;
 
@@ -102,10 +122,29 @@ export class GameState {
 
     // ── 특성 ──
     this.augments = [];
-    this.mods = computeMods([]);
-    this.rerolls = REROLLS;
+    // 도전 규칙과 배지 특전은 특성(mods)과 같은 계층에 얹는다 —
+    // 그래서 전투·경제 시스템은 어디서 온 값인지 알 필요가 없다
+    this.mods = { ...computeMods([]), ...modifierMods(this.modifiers) };
+    if (this.perks.includes('shinyLuck')) this.mods.shinyLuck = 2;      // 이로치 3배
+    if (this.perks.includes('ballDiscount')) this.mods.ballStepMult = -0.25;
+    this.rerolls = REROLLS + (this.perks.includes('extraReroll') ? 1 : 0);
+    this.noAugment = hasFlag(this.modifiers, 'noAugment');
+    this.noProps = hasFlag(this.modifiers, 'noProps');
+    this.costlyBall = hasFlag(this.modifiers, 'costlyBall');
     this.offer = null;              // 진행 중인 특성 선택 { list, wave }
     this.offeredWaves = [];
+
+    // 고스트 레이스 — 웨이브마다 남은 라이프를 적어 둔다.
+    // 같은 시드면 운이 같으므로, 공유할 게 이것뿐이다.
+    this.ghostLives = [];
+
+    // 즉시 효과가 있는 도전 규칙 (라이프 1, 코인 −30% 등)
+    for (const id of this.modifiers) {
+      const m = MODIFIERS.find((x) => x.id === id);
+      if (m?.apply) m.apply(this);
+    }
+    // 배지 특전 — 시작 자원
+    if (this.perks.includes('startStone')) this.items.disks += 1;
   }
 
   // ── 실시간 DPS ──
@@ -137,6 +176,7 @@ export class GameState {
   hasAugment(id) { return this.augments.includes(id); }
 
   openOffer(wave) {
+    if (this.noAugment) return;          // 도전 규칙 '무특성'
     this.offer = { list: rollOffer(this.augments, this.rng.augment), wave };
   }
 
@@ -169,11 +209,12 @@ export class GameState {
     return this.towers.find((t) => t.uid === this.selectedTowerUid) || null;
   }
 
-  addTower(monsterId, c, r, x, y, invested) {
+  addTower(monsterId, c, r, x, y, invested, shiny = false) {
     const t = {
       uid: nextUid(),
       monsterId,
       def: defOf(monsterId),
+      shiny,          // 이로치 — 도트 색이 다르고 스탯이 조금 높다
       c, r, x, y,
       cd: 0,
       salvoLeft: 0,
@@ -227,6 +268,9 @@ export class GameState {
       v: 1,
       stageId: this.stage.id,
       seed: this.seed,
+      mode: this.mode,
+      modifiers: [...this.modifiers],
+      perks: [...this.perks],
       rs: dumpStreams(this.rng),     // 난수 스트림 위치 — 이어해도 같은 운을 이어간다
       wave: this.wave,
       bits: Math.floor(this.bits),
@@ -242,12 +286,13 @@ export class GameState {
       offeredWaves: [...this.offeredWaves],
       rentPaid: [...this.rentPaid],
       summons: this.summons,
-      towers: this.towers.map((t) => ({ m: t.monsterId, c: t.c, r: t.r, i: t.invested })),
+      towers: this.towers.map((t) => ({ m: t.monsterId, c: t.c, r: t.r, i: t.invested, s: t.shiny ? 1 : 0 })),
     };
   }
 
   restore(snap) {
-    this.loadStage(stageById(snap.stageId), snap.seed ?? this.seed);
+    this.loadStage(stageById(snap.stageId), snap.seed ?? this.seed,
+      { mode: snap.mode, modifiers: snap.modifiers || [], perks: snap.perks || [] });
     loadStreams(this.rng, snap.rs);
     this.wave = snap.wave;
     this.bits = snap.bits;
@@ -269,7 +314,7 @@ export class GameState {
       if (!defOf(t.m)) continue;
       const x = t.c * BALANCE.grid.tile + BALANCE.grid.tile / 2;
       const y = t.r * BALANCE.grid.tile + BALANCE.grid.tile / 2;
-      this.addTower(t.m, t.c, t.r, x, y, t.i);
+      this.addTower(t.m, t.c, t.r, x, y, t.i, !!t.s);
     }
     this.pushLog(`이어하기 — ${this.stage.name} 웨이브 ${this.wave}`);
   }

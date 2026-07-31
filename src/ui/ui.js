@@ -4,9 +4,10 @@
 // ─────────────────────────────────────────────────────────────
 import { MONSTERS, ATTR, FIELD, KIND, STARTERS } from '../data/monsters.js';
 import { ENEMIES } from '../data/enemies.js';
-import { STAGES } from '../data/stages.js';
+import { STAGES, REGIONS, stagesOfRegion } from '../data/stages.js';
 import { PHASE } from '../core/gameState.js';
-import { stageRecord, unlockState, loadRun, storageWorks } from '../core/save.js';
+import { stageRecord, unlockState, loadRun, storageWorks, dexAll, hasBadge,
+         DEX_CAUGHT, DEX_GROWN, DEX_SHINY } from '../core/save.js';
 import { VS } from '../net/versus.js';
 import { randomRoomCode, normalizeRoomCode } from '../core/rng.js';
 import { BALANCE, TILE } from '../config/balance.js';
@@ -20,10 +21,12 @@ import { SYNERGY_DEFS } from '../combat/synergy.js';
 import { towerCost, rentDue, nextRent, liquidValue } from '../core/stageManager.js';
 import { PROPS, PROP_IDS, isProp } from '../data/props.js';
 import { ADJ_RULES } from '../combat/adjacency.js';
-import { summonCost, summonOdds, GRADE } from '../core/summon.js';
+import { summonCost, summonOdds, GRADE, LINE_HEADS } from '../core/summon.js';
 import { iconTag, iconURL } from '../render/itemArt.js';
 import { spriteURL } from '../render/unitArt.js';
 import { augmentById, TIER, OFFER_WAVES } from '../augments/augments.js';
+import { MODE, MODIFIERS, weeklyPlan, modifierById, scoreMult } from '../core/modes.js';
+import { encodeGhost, decodeGhost, ghostVerdict } from '../net/ghost.js';
 
 const $ = (id) => document.getElementById(id);
 const attrClass = { FIRE: 'fire', GRASS: 'grass', WATER: 'water' };
@@ -48,6 +51,8 @@ export function initUI(state, handlers) {
     props: $('props'), rentChip: $('chip-rent'), adjBox: $('adj-rules'),
     dps: $('chip-dps'), dpsPeak: $('chip-dps-peak'),
     fbSynergy: $('fb-synergy'), fbLog: $('fb-log'),
+    weekly: $('weekly-box'), badges: $('badge-box'),
+    dexGrid: $('dex-grid'), dexCount: $('dex-count'),
     summonBox: $('summon-box'), summonOdds: $('summon-odds'),
     icoChips: $('ico-chips'), icoDisks: $('ico-disks'), icoCores: $('ico-cores'),
     coach: $('coach'), coachStep: $('coach-step'), coachTitle: $('coach-title'),
@@ -55,6 +60,7 @@ export function initUI(state, handlers) {
     coachWait: $('coach-wait'),
     vsBox: $('vs-box'), vsBar: $('vs-bar'), vsRoom: $('vs-room'), vsMe: $('vs-me'),
     vsOpp: $('vs-opp'), vsOppName: $('vs-opp-name'), vsGap: $('vs-gap'),
+    vsSend: $('vs-send'), vsTake: $('vs-take'),
   };
 
   el.icoChips.innerHTML = iconTag('item', 'chips', 16);
@@ -353,11 +359,95 @@ export function initUI(state, handlers) {
           closeStageSelect();
         });
       }
+      // 클리어한 스테이지에만 엔드리스가 열린다 — 정규를 건너뛰는 우회로가 되면 안 된다
+      if (lock.unlocked && rec.cleared && !st.tutorial) {
+        const foot = document.createElement('div');
+        foot.className = 'sc-foot';
+        const endless = document.createElement('button');
+        endless.className = 'gbtn tiny';
+        endless.innerHTML = `♾ 엔드리스${rec.endless ? ` <b>최고 ${rec.endless}</b>` : ''}`;
+        endless.addEventListener('click', (ev) => {
+          ev.stopPropagation();               // 카드 클릭(정규 시작)과 겹치지 않게
+          openEndless(st, run);
+        });
+        foot.appendChild(endless);
+        card.appendChild(foot);
+      }
       el.stageGrid.appendChild(card);
     });
 
     el.progressLine.textContent = `클리어 ${cleared} / ${STAGES.length} 스테이지`;
+    drawWeekly();
+    drawBadges();
+    drawDex();
     drawVersus();
+  }
+
+  // ── 이번 주 챌린지 ──
+  // 그 주의 월요일에서 시드를 뽑으므로, 코드를 주고받지 않아도
+  // 같은 주에 접속한 사람은 전부 같은 판을 한다.
+  function drawWeekly() {
+    const plan = weeklyPlan(STAGES);
+    const mods = plan.mods.map((id) => modifierById(id)).filter(Boolean);
+    const mult = scoreMult(plan.mods);
+    el.weekly.innerHTML = `
+      <div class="wk-head">
+        <span class="wk-tag">${plan.week}</span>
+        <b>${plan.stage.name}</b>
+        <span class="wk-mult">기록 ×${mult.toFixed(2)}</span>
+      </div>
+      <div class="wk-mods">
+        ${mods.map((m) => `<span class="wk-mod" title="${m.desc}">${m.icon} ${m.name}</span>`).join('')}
+      </div>
+      <p class="fine">이번 주에는 전 세계가 같은 스테이지·같은 운·같은 규칙으로 겨룹니다.
+        조건을 맞추기 위해 배지 특전은 적용되지 않습니다.</p>`;
+    const go = document.createElement('button');
+    go.className = 'gbtn gold';
+    go.textContent = '주간 챌린지 시작';
+    go.addEventListener('click', () => { handlers.onWeekly(); closeStageSelect(); });
+    el.weekly.appendChild(go);
+  }
+
+  // ── 지방 배지 ──
+  // 배지는 힘이 아니라 선택지를 준다 — 영구 스탯 강화를 넣으면
+  // "매 판 같은 조건에서 배치로 푸는" 축이 무너진다.
+  function drawBadges() {
+    el.badges.innerHTML = REGIONS.map((r) => {
+      const list = stagesOfRegion(r.id);
+      const done = list.filter((x) => stageRecord(x.id).cleared).length;
+      const got = hasBadge(r.id, list);
+      return `<div class="badgecard${got ? ' got' : ''}" style="--bc:${r.color}">
+        <span class="bg-ring">${got ? '◉' : '○'}</span>
+        <span class="bg-body">
+          <b>${r.badge}</b>
+          <small>${r.name}지방 ${done}/${list.length}</small>
+          <em>${r.perkName}</em>
+        </span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── 도감 ──
+  function drawDex() {
+    const dex = dexAll();
+    const ids = Object.keys(MONSTERS);
+    const caught = ids.filter((id) => (dex[id] || 0) & DEX_CAUGHT).length;
+    const shiny = ids.filter((id) => (dex[id] || 0) & DEX_SHINY).length;
+    el.dexCount.textContent = `${caught} / ${ids.length}${shiny ? ` · ✨${shiny}` : ''}`;
+    el.dexGrid.innerHTML = ids.map((id) => {
+      const d = MONSTERS[id];
+      const f = dex[id] || 0;
+      if (!(f & DEX_CAUGHT)) {
+        return `<div class="dexcell empty" title="아직 만나지 못했습니다"><span class="dx-q">?</span></div>`;
+      }
+      const isShiny = !!(f & DEX_SHINY);
+      return `<div class="dexcell${isShiny ? ' shiny' : ''}" style="--dc:${d.color}"
+                   title="${d.name}${isShiny ? ' (이로치 확인)' : ''}">
+        <img src="${spriteURL(d, isShiny)}" alt="" width="30" height="33">
+        <span class="dx-n">${d.name}</span>
+        ${(f & DEX_GROWN) ? '<span class="dx-g">▲</span>' : ''}
+      </div>`;
+    }).join('');
   }
 
   // ── 대결 로비 ──
@@ -385,7 +475,8 @@ export function initUI(state, handlers) {
     // ── 대결 중이 아님: 방 만들기 / 참가 ──
     if (vs.phase === VS.OFF) {
       box.appendChild(line('vs-lead',
-        '같은 맵을 <b>같은 운</b>으로 각자 돌립니다. 포획·특성·드랍이 둘 다 똑같이 나오고, 더 높은 웨이브까지 버틴 쪽이 이깁니다.'));
+        '같은 맵을 <b>같은 운</b>으로 각자 돌립니다. 포획·특성·드랍이 둘 다 똑같이 나오고, 더 높은 웨이브까지 버틴 쪽이 이깁니다. '
+        + '조건을 맞추기 위해 배지 특전은 양쪽 다 꺼집니다.'));
 
       const open = playableStages();
       if (!vsForm.stageId || !open.some((st) => st.id === vsForm.stageId)) {
@@ -449,6 +540,33 @@ export function initUI(state, handlers) {
         vsForm.kind === 'local'
           ? '같은 브라우저에서 창(탭)을 하나 더 열고 같은 코드로 참가하면 됩니다.'
           : '방 코드만 알려주면 됩니다. 연결은 두 사람 사이에서 직접 맺어집니다.'));
+
+      // ── 고스트 레이스 ──
+      // 동시에 접속하지 못해도 붙을 수 있는 비동기 대결
+      const gh = document.createElement('div');
+      gh.className = 'ghostbox';
+      gh.innerHTML = `<div class="gh-head"><b>👻 도전장 받기</b>
+        <span>친구가 준 기록 코드로 같은 판을 달립니다. 동시 접속이 필요 없습니다.</span></div>`;
+      const row = document.createElement('div');
+      row.className = 'vs-row';
+      const inp = document.createElement('input');
+      inp.className = 'vs-input';
+      inp.placeholder = 'G1.k3f9a1.pallet_road.-.20,20,19…';
+      const go = document.createElement('button');
+      go.className = 'gbtn';
+      go.textContent = '도전';
+      const err = document.createElement('div');
+      err.className = 'gh-err';
+      go.addEventListener('click', () => {
+        const g = decodeGhost(inp.value);
+        if (!g) { err.textContent = '코드를 읽을 수 없습니다. 전체를 복사했는지 확인해 주세요.'; return; }
+        if (!STAGES.some((x) => x.id === g.stageId)) { err.textContent = '없는 스테이지입니다.'; return; }
+        handlers.onGhostRace(g);
+        closeStageSelect();
+      });
+      row.append(inp, go);
+      gh.append(row, err);
+      box.appendChild(gh);
       return;
     }
 
@@ -488,6 +606,42 @@ export function initUI(state, handlers) {
     } else if (vs.phase === VS.READY) {
       box.appendChild(line('vs-ready',
         `상대 접속 완료 — <b>${st ? st.name : '맵 확인 중'}</b> ${st ? `${st.waves}웨이브` : ''}`));
+
+      // ── 밴픽 ──
+      // 같은 시드라 최적해가 하나로 수렴하는 걸 막는다. 서로 2라인씩 금지.
+      const ban = document.createElement('div');
+      ban.className = 'banbox';
+      ban.innerHTML = `<div class="ban-head">
+          <b>밴픽</b>
+          <span>서로 <b>2라인</b>씩 금지합니다 (${vs.myBans.length}/2)</span>
+          ${vs.oppBanReady ? '<em class="ok">상대 확정</em>' : '<em>상대 고르는 중…</em>'}
+        </div>`;
+      const grid = document.createElement('div');
+      grid.className = 'ban-grid';
+      for (const id of LINE_HEADS) {
+        const d = MONSTERS[id];
+        const mine = vs.myBans.includes(id);
+        const theirs = vs.oppBans.includes(id);
+        const b = document.createElement('button');
+        b.className = 'banchip' + (mine ? ' mine' : '') + (theirs ? ' theirs' : '');
+        b.disabled = vs.banReady;
+        b.style.setProperty('--bc', d.color);
+        b.innerHTML = `<img src="${spriteURL(d)}" alt="" width="24" height="26"><span>${d.name}</span>`;
+        b.addEventListener('click', () => handlers.onVsBan(id));
+        grid.appendChild(b);
+      }
+      ban.appendChild(grid);
+      if (!vs.banReady) {
+        const ok = document.createElement('button');
+        ok.className = 'gbtn tiny';
+        ok.textContent = vs.myBans.length ? `밴 확정 (${vs.myBans.length}개)` : '밴 없이 진행';
+        ok.addEventListener('click', () => handlers.onVsBanConfirm());
+        ban.appendChild(ok);
+      } else {
+        ban.insertAdjacentHTML('beforeend',
+          `<p class="fine">내 밴 확정. ${vs.oppBanReady ? '양쪽 다 확정 — 시작할 수 있습니다.' : '상대를 기다리는 중…'}</p>`);
+      }
+      box.appendChild(ban);
     } else if (vs.phase === VS.PLAYING) {
       box.appendChild(line('vs-wait', '대결 진행 중 — 게임 화면으로 돌아가세요.'));
     } else if (vs.phase === VS.FINISHED) {
@@ -502,7 +656,9 @@ export function initUI(state, handlers) {
     if (vs.phase === VS.READY && vs.isHost) {
       const go = document.createElement('button');
       go.className = 'gbtn gold';
-      go.textContent = '대결 시작';
+      const ready = vs.banReady && vs.oppBanReady;
+      go.textContent = ready ? '대결 시작' : '밴픽 대기 중';
+      go.disabled = !ready;
       go.addEventListener('click', () => handlers.onVsBegin());
       foot.appendChild(go);
     } else if (vs.phase === VS.READY) {
@@ -520,6 +676,26 @@ export function initUI(state, handlers) {
   function refreshVersusBar() {
     const vs = handlers.vsState();
     const on = vs.phase === VS.PLAYING || vs.phase === VS.FINISHED;
+
+    // 고스트 레이스도 같은 바를 쓴다 — 실시간 대결과 읽는 법이 같아야 한다
+    if (!on && state.ghost) {
+      el.vsBar.classList.remove('hidden');
+      el.vsBar.classList.add('ghost');
+      const v = ghostVerdict(state.ghost, state);
+      el.vsRoom.textContent = '고스트';
+      el.vsMe.textContent = `웨이브 ${state.wave} · ♥${state.life}`;
+      el.vsOppName.textContent = '👻 기록';
+      const g = state.ghost;
+      el.vsOpp.textContent = state.wave > g.reached
+        ? `${g.reached}웨이브에서 끝남`
+        : `웨이브 ${state.wave} · ♥${g.lives[state.wave - 1] ?? '?'}`;
+      el.vsSend.textContent = ''; el.vsTake.textContent = '';
+      el.vsGap.textContent = v ? v.text : '—';
+      el.vsBar.classList.toggle('ahead', !!v && v.lead > 0);
+      el.vsBar.classList.toggle('behind', !!v && v.lead < 0);
+      return;
+    }
+    el.vsBar.classList.remove('ghost');
     el.vsBar.classList.toggle('hidden', !on);
     if (!on) return;
 
@@ -540,6 +716,68 @@ export function initUI(state, handlers) {
     el.vsGap.textContent = d === 0 ? '동률' : (d > 0 ? `+${d} 앞섬` : `${d} 뒤짐`);
     el.vsBar.classList.toggle('ahead', d > 0);
     el.vsBar.classList.toggle('behind', d < 0);
+
+    // 간섭 현황 — 보낸 것 / 받을 것
+    const pend = state.incoming || 0;
+    el.vsSend.textContent = vs.sentTotal ? `⚡보냄 ${vs.sentTotal}` : '';
+    el.vsTake.textContent = pend ? `⚠다음 웨이브 +${pend}` : (vs.tookTotal ? `받음 ${vs.tookTotal}` : '');
+    el.vsTake.classList.toggle('hot', pend > 0);
+  }
+
+  /**
+   * 엔드리스 진입 — 도전 규칙을 고르고 들어간다.
+   * 규칙은 스스로 거는 제약이고, 걸수록 기록 배수가 붙는다.
+   */
+  let endlessPick = [];
+  function openEndless(st, run) {
+    endlessPick = [];
+    const draw = () => {
+      const mult = scoreMult(endlessPick);
+      el.resumeBox.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'resume endless';
+      box.innerHTML = `
+        <div style="width:100%">
+          <div class="rz-t">♾ 엔드리스 — ${st.name}</div>
+          <div class="rz-s">웨이브 ${Math.max(1, Math.floor(st.waves * 0.6))}부터 끝없이 이어집니다.
+            도전 규칙을 걸수록 기록 배수가 올라갑니다.</div>
+          <div class="modpick"></div>
+          <div class="modfoot">
+            <span class="modmult">기록 배수 <b>×${mult.toFixed(2)}</b></span>
+          </div>
+        </div>`;
+      const pick = box.querySelector('.modpick');
+      for (const m of MODIFIERS) {
+        const on = endlessPick.includes(m.id);
+        const b = document.createElement('button');
+        b.className = 'modchip' + (on ? ' on' : '');
+        b.innerHTML = `<span class="mc-i">${m.icon}</span>
+          <span class="mc-b"><b>${m.name}</b><small>${m.desc}</small></span>
+          <span class="mc-m">×${(1 + m.mult).toFixed(2)}</span>`;
+        b.addEventListener('click', () => {
+          const i = endlessPick.indexOf(m.id);
+          if (i >= 0) endlessPick.splice(i, 1); else endlessPick.push(m.id);
+          draw();
+        });
+        pick.appendChild(b);
+      }
+      const foot = box.querySelector('.modfoot');
+      const go = document.createElement('button');
+      go.className = 'gbtn gold';
+      go.textContent = '엔드리스 시작';
+      go.addEventListener('click', () => {
+        handlers.onSelectStage(st.id, { mode: MODE.ENDLESS, modifiers: endlessPick });
+        closeStageSelect();
+      });
+      const back = document.createElement('button');
+      back.className = 'gbtn tiny ghost';
+      back.textContent = '취소';
+      back.addEventListener('click', () => drawStageSelect());
+      foot.appendChild(go); foot.appendChild(back);
+      el.resumeBox.appendChild(box);
+      el.resumeBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    draw();
   }
 
   /** 저장된 판이 있는데 새 판을 시작하려 할 때 — 지우기 전에 반드시 거친다 */
@@ -1056,19 +1294,64 @@ export function initUI(state, handlers) {
       return;
     }
 
-    el.ovRibbon.textContent = state.stage.name;
-    el.ovTitle.textContent = win ? '스테이지 클리어!'
+    const endless = state.mode === MODE.ENDLESS;
+    const weekly = state.mode === MODE.WEEKLY;
+    const reached = win ? state.totalWaves : state.wave;
+    const mult = state.scoreMult ?? 1;
+
+    el.ovRibbon.textContent = weekly ? `주간 챌린지 · ${state.stage.name}`
+      : endless ? `엔드리스 · ${state.stage.name}` : state.stage.name;
+    el.ovTitle.textContent = endless ? `${reached}웨이브에서 멈췄다`
+      : win ? '스테이지 클리어!'
       : state.lostTo === 'rent' ? '압류' : '기지 함락';
+    // 도전 규칙을 걸었으면 웨이브가 아니라 배수를 먹인 점수가 결론이다
     el.ovStats.innerHTML = `
-      <div><span>도달 웨이브</span><b>${win ? state.totalWaves : state.wave}</b></div>
+      <div><span>도달 웨이브</span><b>${reached}</b></div>
       <div><span>처치</span><b>${state.kills}</b></div>
-      <div><span>남은 라이프</span><b>${state.life}</b></div>
-      <div><span>이 맵 최고</span><b>${rec.best}</b></div>`;
+      ${mult > 1
+        ? `<div><span>기록 (×${mult.toFixed(2)})</span><b>${Math.round(reached * mult)}</b></div>`
+        : `<div><span>남은 라이프</span><b>${state.life}</b></div>`}
+      <div><span>이 맵 최고</span><b>${endless ? rec.endless : rec.best}</b></div>`;
     el.ovBody.textContent = [
       state.newBest ? '★ 최고 기록 갱신!' : '',
+      state.ghost ? (ghostVerdict(state.ghost, state)?.text ?? '') : '',
       `특성: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
       `최종 배치: ${state.towers.map((t) => t.def.name).join(', ') || '없음'}`,
     ].filter(Boolean).join('\n');
+
+    drawGhostShare();
+  }
+
+  /**
+   * 결과창의 도전장 보내기 — 방금 한 판을 코드로 뽑는다.
+   * 웨이브별 라이프가 있어야 비교가 되므로 한 웨이브도 못 깬 판은 건너뛴다.
+   */
+  function drawGhostShare() {
+    const old = el.overlay.querySelector('.ghostshare');
+    if (old) old.remove();
+    const lives = (state.ghostLives || []).filter((n) => n != null);
+    if (lives.length < 1) return;
+    const code = encodeGhost({
+      seed: state.seed, stageId: state.stage.id,
+      modifiers: state.modifiers, perks: state.perks, lives,
+    });
+    if (!code) return;
+
+    const box = document.createElement('div');
+    box.className = 'ghostshare';
+    box.innerHTML = `<div class="gs-head"><b>👻 도전장 보내기</b>
+      <span>친구가 이 코드로 같은 판·같은 운에 도전합니다.</span></div>
+      <div class="gs-code">${code}</div>`;
+    const copy = document.createElement('button');
+    copy.className = 'gbtn tiny gold';
+    copy.textContent = '코드 복사';
+    copy.addEventListener('click', () => {
+      navigator.clipboard?.writeText(code);
+      copy.textContent = '복사됨!';
+      setTimeout(() => { copy.textContent = '코드 복사'; }, 1200);
+    });
+    box.appendChild(copy);
+    el.overlay.querySelector('.dialog-actions').before(box);
   }
 
   function setHint(text, warn = false) {

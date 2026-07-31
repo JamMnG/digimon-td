@@ -43,6 +43,23 @@ export function createVersus() {
     myResult: null,      // { wave, won }
     oppResult: null,
     verdict: null,       // 'win' | 'lose' | 'draw'
+
+    // ── 밴픽 ──
+    myBans: [],          // 내가 금지한 라인 (기본형 id)
+    oppBans: [],
+    banned: [],          // 합쳐진 금지 목록 — 소환 풀에서 빠진다
+    banReady: false,     // 나는 밴을 확정했나
+    oppBanReady: false,
+
+    // ── 간섭 ──
+    incoming: 0,         // 상대가 보낸 적 (아직 안 받은 분)
+    sentTotal: 0,        // 내가 보낸 누적
+    tookTotal: 0,        // 내가 받은 누적
+    lastSend: 0,         // 방금 보낸 수 (UI 반짝임용)
+    lastTake: 0,
+
+    // ── 고스트 ──
+    ghost: null,         // { name, waves: [{w, life}] } — 비동기 상대
     _t: 0,
   };
 
@@ -69,6 +86,17 @@ export function createVersus() {
         if (m.stageId) s.stageId = m.stageId;
         if (m.seed != null) s.seed = m.seed;
         localBegin();
+      } else if (m.t === 'ban') {
+        s.oppBans = m.bans || [];
+        s.oppBanReady = true;
+        syncBans();
+        emit();
+      } else if (m.t === 'send') {
+        // 상대가 웨이브를 빠르게 정리해 적을 보냈다
+        s.incoming += m.n || 0;
+        s.tookTotal += m.n || 0;
+        s.lastTake = m.n || 0;
+        emit();
       } else if (m.t === 'status') {
         s.opponent = m.s;
         emit();
@@ -123,12 +151,59 @@ export function createVersus() {
     emit();
   }
 
+  /** 두 사람의 밴을 합친다 — 소환 풀에서 빠질 라인 목록 */
+  function syncBans() {
+    s.banned = [...new Set([...s.myBans, ...s.oppBans])];
+  }
+
+  /** 내가 금지할 라인을 정한다 (확정 전까지 자유롭게 토글) */
+  function toggleBan(id, max = 2) {
+    if (s.banReady) return false;
+    const i = s.myBans.indexOf(id);
+    if (i >= 0) s.myBans.splice(i, 1);
+    else if (s.myBans.length < max) s.myBans.push(id);
+    else return false;
+    emit();
+    return true;
+  }
+
+  /** 밴 확정 — 상대에게 보내고 서로 합친다 */
+  function confirmBans() {
+    if (s.banReady) return;
+    s.banReady = true;
+    if (tp) tp.send({ t: 'ban', bans: s.myBans });
+    syncBans();
+    emit();
+  }
+
+  /**
+   * 웨이브를 라이프 손실 없이 정리하면 잉여 화력만큼 상대에게 적을 보낸다.
+   * 각자 자기 시뮬을 돌리므로 메시지 하나면 되고, 락스텝이 아니라 디싱크가 없다.
+   */
+  function sendGarbage(n) {
+    if (s.phase !== VS.PLAYING || n <= 0) return;
+    s.sentTotal += n;
+    s.lastSend = n;
+    if (tp) tp.send({ t: 'send', n });
+    emit();
+  }
+
+  /** 받은 적을 실제로 꺼낸다 (웨이브 시작 시 스폰 큐에 얹는다) */
+  function takeIncoming() {
+    const n = s.incoming;
+    s.incoming = 0;
+    if (n) emit();
+    return n;
+  }
+
   function localBegin() {
     if (s.phase === VS.PLAYING) return;
     s.phase = VS.PLAYING;
     s.myResult = null;
     s.oppResult = null;
     s.verdict = null;
+    s.incoming = 0; s.sentTotal = 0; s.tookTotal = 0;
+    s.lastSend = 0; s.lastTake = 0;
     s._t = 0;
     emit();
   }
@@ -203,6 +278,10 @@ export function createVersus() {
     s.myResult = null;
     s.oppResult = null;
     s.verdict = null;
+    s.myBans = []; s.oppBans = []; s.banned = [];
+    s.banReady = false; s.oppBanReady = false;
+    s.incoming = 0; s.sentTotal = 0; s.tookTotal = 0;
+    s.ghost = null;
     s.error = '';
     emit();
   }
@@ -212,5 +291,7 @@ export function createVersus() {
     get active() { return s.phase === VS.PLAYING || s.phase === VS.FINISHED; },
     onChange(fn) { listener = fn; },
     host, join, begin, update, finish, leave,
+    toggleBan, confirmBans, sendGarbage, takeIncoming,
+    setGhost(g) { s.ghost = g; emit(); },
   };
 }

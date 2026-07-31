@@ -911,3 +911,180 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .fbl.fresh { color: var(--cream); border-left-color: var(--gold); }
+
+/* ══════════ 신규 컨텐츠 ══════════ */
+
+/* ── 이번 주 챌린지 ──
+   그 주의 월요일에서 시드를 뽑으므로 코드를 주고받지 않아도 같은 판이 된다. */
+.weekly {
+  background: linear-gradient(150deg, #4a3a6a 0%, var(--panel) 62%);
+  border: 3px solid #7a63c9; border-radius: 14px; padding: 14px 16px;
+  box-shadow: var(--drop), var(--bevel);
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+}
+.wk-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wk-head b { font-size: 18px; letter-spacing: -.3px; }
+.wk-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #241c10;
+  background: linear-gradient(#c3b0ff, #8f7ae0); border-radius: 999px; padding: 3px 10px;
+}
+.wk-mult { margin-left: auto; font-size: 12px; font-weight: 700; color: #c3b0ff; }
+.wk-mods { display: flex; gap: 7px; flex-wrap: wrap; }
+.wk-mod {
+  font-size: 11px; font-weight: 700; color: #e6dcff;
+  background: var(--inset); border: 2px solid #5a4a8a; border-radius: 9px;
+  padding: 5px 10px; box-shadow: var(--hole);
+}
+.weekly .fine { margin: 0; }
+
+/* ── 지방 배지 ── */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.badgecard {
+  display: flex; align-items: center; gap: 11px;
+  background: linear-gradient(var(--panel), #2e2410);
+  border: 3px solid var(--ink); border-radius: 13px; padding: 11px 13px;
+  box-shadow: var(--drop-sm), var(--bevel);
+  opacity: .78;
+}
+/* 잠긴 배지는 흐리게 두되 이름은 읽혀야 한다 —
+   지방 색을 그대로 죽이면 관동(빨강)·신오(보라)가 배경에 묻힌다 */
+.badgecard:not(.got) .bg-ring { color: var(--muted-2); box-shadow: inset 0 0 0 2px #0000004d, var(--hole); }
+.badgecard:not(.got) .bg-body b { color: var(--muted); }
+.badgecard.got { opacity: 1; border-color: var(--bc); }
+.bg-ring {
+  width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 19px; color: var(--bc);
+  background: var(--inset);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bc) 60%, transparent), var(--hole);
+}
+.badgecard.got .bg-ring { box-shadow: inset 0 0 0 2px var(--bc), 0 0 12px color-mix(in srgb, var(--bc) 45%, transparent); }
+.bg-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bg-body b { font-size: 13px; color: var(--bc); }
+.bg-body small { font-size: 10px; color: var(--muted-2); }
+.bg-body em { font-style: normal; font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+/* ── 도감 ── */
+.dex-count { float: right; color: var(--muted); letter-spacing: 0; text-transform: none; }
+.dexgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 7px; }
+.dexcell {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: linear-gradient(var(--panel-2), var(--panel));
+  border: 2px solid var(--ink); border-radius: 11px; padding: 6px 4px 5px;
+  box-shadow: var(--drop-sm), var(--bevel);
+}
+.dexcell img { display: block; image-rendering: pixelated; }
+.dexcell .dx-n {
+  font-size: 9.5px; color: var(--muted); text-align: center; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+/* 아직 못 만난 칸은 실루엣도 안 보여준다 — 채우는 재미가 사라진다 */
+.dexcell.empty {
+  background: var(--inset); box-shadow: var(--hole);
+  min-height: 56px; justify-content: center;
+}
+.dexcell.empty .dx-q { font-size: 20px; color: var(--muted-2); opacity: .5; font-weight: 700; }
+/* 진화까지 키운 칸 */
+.dexcell .dx-g {
+  position: absolute; right: 4px; top: 3px; font-size: 9px; color: var(--ok);
+}
+/* 이로치로 본 칸은 테두리가 빛난다 */
+.dexcell.shiny {
+  border-color: #ffd166;
+  box-shadow: var(--drop-sm), 0 0 12px rgba(255, 209, 102, .35), var(--bevel);
+}
+.dexcell.shiny .dx-n { color: var(--gold); }
+
+/* ── 밴픽 ── */
+.banbox {
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 12px;
+  padding: 11px; box-shadow: var(--hole);
+  display: flex; flex-direction: column; gap: 9px; align-items: flex-start;
+}
+.ban-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; font-size: 12px; }
+.ban-head > b { color: var(--gold); }
+.ban-head span { color: var(--muted); }
+.ban-head em { font-style: normal; margin-left: auto; color: var(--muted-2); font-size: 11px; }
+.ban-head em.ok { color: var(--ok); }
+.ban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; width: 100%; }
+.banchip {
+  display: flex; align-items: center; gap: 5px; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 700; color: var(--cream);
+  background: linear-gradient(var(--panel-2), var(--panel));
+  border: 2px solid var(--ink); border-radius: 9px; padding: 4px 6px;
+  box-shadow: var(--bevel);
+}
+.banchip img { image-rendering: pixelated; }
+.banchip:hover:not(:disabled) { filter: brightness(1.2); }
+.banchip:disabled { cursor: default; }
+/* 내가 민 것 / 상대가 민 것을 다르게 표시해야 남은 선택지를 셀 수 있다 */
+.banchip.mine { border-color: #ff6b5a; background: linear-gradient(#5c2b24, #3d1c17); }
+.banchip.mine::after { content: '✕'; margin-left: auto; color: #ff8a7a; }
+.banchip.theirs { border-color: #6f7d8f; opacity: .5; }
+.banchip.theirs::after { content: '✕'; margin-left: auto; color: var(--muted-2); }
+
+/* ── 대결 바의 간섭 표시 ── */
+.vs-send, .vs-take { font-size: 11px; font-weight: 700; }
+.vs-send { color: #7fe0a0; }
+.vs-take { color: var(--muted-2); }
+.vs-take.hot {
+  color: #ffd0c6; background: rgba(200, 70, 50, .28);
+  border-radius: 7px; padding: 2px 8px;
+  animation: pulseRed 1.1s ease-in-out infinite;
+}
+
+/* ── 엔드리스 · 도전 규칙 고르기 ── */
+.resume.endless {
+  background: linear-gradient(150deg, #1f4a44 0%, var(--panel) 62%);
+  border-color: #3f9e8a; box-shadow: 0 5px 0 #1d5a50, var(--bevel);
+  flex-direction: column; align-items: stretch;
+}
+.modpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 7px; margin: 11px 0; }
+.modchip {
+  display: flex; align-items: center; gap: 9px; text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--cream);
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 10px;
+  padding: 7px 9px; box-shadow: var(--hole);
+}
+.modchip:hover { filter: brightness(1.25); }
+.modchip.on { border-color: #ff9a5a; background: linear-gradient(#4a2a18, #33200f); }
+.mc-i { font-size: 17px; flex: 0 0 auto; }
+.mc-b { display: flex; flex-direction: column; min-width: 0; }
+.mc-b b { font-size: 12px; }
+.mc-b small { font-size: 10px; color: var(--muted); line-height: 1.35; }
+.mc-m { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted-2); }
+.modchip.on .mc-m { color: #ffb03a; }
+.modfoot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.modmult { font-size: 12px; color: var(--muted); margin-right: auto; }
+.modmult b { color: var(--gold); font-size: 15px; }
+/* 스테이지 카드의 엔드리스 버튼 */
+.sc-foot { padding: 0 13px 12px; }
+.sc-foot .gbtn { width: 100%; }
+.sc-foot .gbtn b { color: var(--gold); }
+
+/* ── 고스트 레이스 ── */
+.ghostbox {
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 12px;
+  padding: 11px; box-shadow: var(--hole);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.gh-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; font-size: 12px; }
+.gh-head b { color: #c3b0ff; }
+.gh-head span { color: var(--muted); font-size: 11px; }
+.gh-err:empty { display: none; }
+.gh-err { color: #ff9d8a; font-size: 11px; font-weight: 700; }
+.vs-bar.ghost { border-color: #7a63c9; }
+.vs-bar.ghost .vs-tag { background: linear-gradient(#c3b0ff, #8f7ae0); }
+
+.ghostshare {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  background: var(--inset); border: 2px solid var(--ink); border-radius: 11px;
+  padding: 9px 11px; margin: 0 0 14px; box-shadow: var(--hole); text-align: left;
+}
+.gs-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; width: 100%; font-size: 12px; }
+.gs-head b { color: #c3b0ff; }
+.gs-head span { color: var(--muted); font-size: 11px; }
+.gs-code {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px;
+  color: #c3b0ff; background: rgba(0,0,0,.4); border-radius: 6px; padding: 4px 7px;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

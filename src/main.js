@@ -19,6 +19,8 @@ import { createTutorial } from './tutorial/tutorial.js';
 import { summon, releasePending } from './core/summon.js';
 import { createVersus, VS } from './net/versus.js';
 import { randomSeed } from './core/rng.js';
+import { MODE, weeklyPlan } from './core/modes.js';
+import { STAGES, REGIONS, stagesOfRegion } from './data/stages.js';
 
 // 개발용 데이터 검증
 const dataErrors = [...validateMonsterData(), ...validateMegaData()];
@@ -43,6 +45,18 @@ let runLive = false;
 // 대결은 판 하나가 통째로 승부라 중간 저장을 하지 않는다.
 // (이어하기로 되돌리면 같은 운을 두 번 쓰는 셈이 된다)
 const versus = createVersus();
+
+/** 지방을 다 깬 사람이 가진 특전들 — 힘이 아니라 선택지를 준다 */
+function earnedPerks() {
+  return REGIONS
+    .filter((r) => save.hasBadge(r.id, stagesOfRegion(r.id)))
+    .map((r) => r.perk);
+}
+
+// 남과 기록을 겨루는 모드(대결·고스트·주간)에서는 배지 특전을 끈다.
+// 리롤 횟수나 볼 값이 사람마다 다르면 "같은 판을 같은 운으로"가 거짓말이 된다.
+// 배지는 일반 스테이지와 엔드리스에서만 힘을 쓴다.
+const FAIR = [];
 
 const HINT_DEFAULT = '몬스터볼(Q)을 던져 포켓몬을 잡고, 풀숲 위 빈 칸을 클릭해 배치하세요.';
 
@@ -165,17 +179,44 @@ const ui = initUI(state, {
   onLeaveToMenu: () => { flushSave(); },
 
   // 스테이지 카드를 눌러 '새로' 시작하는 경로. UI가 이미 확인을 받았다.
-  onSelectStage: (stageId) => {
+  onSelectStage: (stageId, opts = {}) => {
     if (versus.active) versus.leave();
     if (stageId === 'tutorial') { startTutorial(); return; }
     stopTutorial();
     save.clearRun();
-    state.loadStage(stageById(stageId), randomSeed());
+    const mode = opts.mode || MODE.NORMAL;
+    const seed = opts.seed ?? randomSeed();
+    state.loadStage(stageById(stageId), seed, {
+      mode, modifiers: opts.modifiers || [], perks: earnedPerks(),
+    });
+    state.noSave = false;
+    state.bannedLines = null; state.versusSend = null; state.incoming = 0; state.ghost = null;
     state.speed = save.getSetting('speed', 1);
     runLive = true;
     afterStageChange();
     flushSave();                     // 들어선 즉시 이어하기 지점을 만든다
-    state.showBanner(state.stage.name, state.stage.tag || '', 2.0);
+    const tagline = mode === MODE.ENDLESS ? '엔드리스'
+      : mode === MODE.WEEKLY ? '주간 챌린지' : (state.stage.tag || '');
+    state.showBanner(state.stage.name, tagline, 2.0);
+  },
+
+  /** 주간 챌린지 — 그 주 시드로 스테이지·도전 규칙이 고정된다 */
+  onWeekly: () => {
+    const plan = weeklyPlan(STAGES);
+    ui.closeStageSelect();
+    if (versus.active) versus.leave();
+    stopTutorial();
+    save.clearRun();
+    state.loadStage(plan.stage, plan.seed, {
+      mode: MODE.WEEKLY, modifiers: plan.mods, perks: FAIR,
+    });
+    state.noSave = false;
+    state.bannedLines = null; state.versusSend = null; state.incoming = 0; state.ghost = null;
+    state.speed = save.getSetting('speed', 1);
+    runLive = true;
+    afterStageChange();
+    flushSave();
+    state.showBanner('주간 챌린지', `${plan.week} · ${plan.stage.name}`, 2.4);
   },
 
   onResume: () => {
@@ -217,6 +258,28 @@ const ui = initUI(state, {
   onVsJoin: (room, kind) => versus.join(room, kind),
   onVsBegin: () => startVersus(),
   onVsLeave: () => versus.leave(),
+  /** 고스트 레이스 — 친구 기록과 같은 시드로 달린다 */
+  onGhostRace: (g) => {
+    if (versus.active) versus.leave();
+    stopTutorial();
+    save.clearRun();
+    state.loadStage(stageById(g.stageId), g.seed, {
+      // 기록을 남긴 사람과 같은 특전으로 달린다 (코드에 담겨 온다)
+      mode: MODE.NORMAL, modifiers: g.modifiers || [], perks: g.perks || FAIR,
+    });
+    state.noSave = false;
+    state.bannedLines = null; state.versusSend = null; state.incoming = 0;
+    state.ghost = g;                       // UI가 매 웨이브 비교해 보여준다
+    state.speed = save.getSetting('speed', 1);
+    runLive = true;
+    afterStageChange();
+    flushSave();
+    state.showBanner('고스트 레이스', `상대 기록 ${g.reached}웨이브`, 2.4);
+    ui.setHint('같은 시드로 친구의 기록과 겨룹니다. 같은 웨이브에서 라이프가 많으면 앞선 것입니다.');
+  },
+
+  onVsBan: (id) => versus.toggleBan(id),
+  onVsBanConfirm: () => versus.confirmBans(),
 });
 
 // 로비 상태가 바뀔 때마다 스테이지 화면을 다시 그린다.
@@ -238,13 +301,16 @@ function enterVersusStage() {
   stopTutorial();
   runLive = false;              // 대결 판은 이어하기로 저장하지 않는다
   save.clearRun();
-  state.loadStage(stageById(vs.stageId), vs.seed);
+  state.loadStage(stageById(vs.stageId), vs.seed, { perks: FAIR });
   state.noSave = true;          // 웨이브 클리어 자동저장까지 막는다
+  state.bannedLines = vs.banned;                 // 밴픽 결과가 소환 풀에서 빠진다
+  state.incoming = 0;
+  state.versusSend = (n) => versus.sendGarbage(n);   // 웨이브를 빨리 깨면 상대에게
   state.speed = save.getSetting('speed', 1);
   afterStageChange();
   ui.closeStageSelect();
   state.showBanner('대결 시작', `${state.stage.name} · 방 ${vs.room}`, 2.2);
-  ui.setHint(`대결 중 — 같은 운으로 진행합니다. 더 높은 웨이브까지 버티면 승리.`);
+  ui.setHint('대결 중 — 웨이브를 라이프 손실 없이 빨리 깨면 상대에게 적을 보냅니다.');
 }
 
 // ── 튜토리얼 ──
@@ -397,6 +463,8 @@ function tick(dt, now = performance.now()) {
     }
     if (versus.state.phase === VS.PLAYING) {
       versus.update(state, dt);
+      const got = versus.takeIncoming();
+      if (got) state.incoming = (state.incoming || 0) + got;
       // 내 판이 방금 끝났다 — 최종 웨이브를 보내고 상대 결과를 기다린다
       if (wasPlaying && (state.phase === PHASE.WIN || state.phase === PHASE.LOSE)) {
         versus.finish(state);

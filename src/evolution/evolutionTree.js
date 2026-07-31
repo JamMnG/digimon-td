@@ -10,6 +10,7 @@
 import { BALANCE } from '../config/balance.js';
 import { MONSTERS } from '../data/monsters.js';
 import * as eco from '../economy/economyManager.js';
+import { dexMark, DEX_CAUGHT, DEX_GROWN, DEX_SHINY } from '../core/save.js';
 
 /** 다음 티어 진화 비용 — null이면 최종 진화체. state를 주면 증강 할인이 반영된다. */
 export function evolveCost(fromId, state) {
@@ -55,6 +56,7 @@ export function evolve(state, tower, toId) {
   eco.spend(state, cost.bits);
   eco.consumeItem(state, cost.item, cost.amount);
 
+  if (!state.noSave) dexMark(toId, DEX_CAUGHT | DEX_GROWN | (tower.shiny ? DEX_SHINY : 0));
   tower.monsterId = toId;
   tower.def = MONSTERS[toId];
   tower.invested += cost.bits;

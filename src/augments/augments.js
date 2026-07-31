@@ -59,7 +59,7 @@ export const AUGMENTS = [
     desc: `${fieldName('STEEL')} 타입 광역·관통 +65%`, mods: { fieldSplash: { STEEL: 0.65 } } },
 
   // 경제 (실버)
-  { id: 'bit_flow', tier: 'silver', name: '부적금화', icon: '🪙',
+  { id: 'bit_flow', tier: 'silver', name: '부적금화', icon: '💰',
     desc: '웨이브 클리어 보상 +50%', mods: { waveClearMult: 0.50 } },
   { id: 'scavenge', tier: 'silver', name: '리사이클', icon: '♻',
     desc: '방생 시 투자한 코인을 100% 돌려받는다', mods: { sellRefundAdd: 0.4 } },
@@ -79,7 +79,7 @@ export const AUGMENTS = [
     mods: { chipPerWave: 1, eliteDropMult: 1 } },
   { id: 'item_cache', tier: 'gold', name: '비밀기지', icon: '🎁',
     desc: '즉시 메가스톤 +2, 진화의돌 +2', instant: { cores: 2, disks: 2 } },
-  { id: 'trainer_card', tier: 'gold', name: '트레이너카드', icon: '🪪',
+  { id: 'trainer_card', tier: 'gold', name: '트레이너카드', icon: '🎫',
     desc: '즉시 코인 +(현재 웨이브 ×90), 이상한사탕 +2',
     instant: { bitsPerWave: 90, chips: 2 } },
 

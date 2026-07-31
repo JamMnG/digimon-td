@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 import { BALANCE } from '../config/balance.js';
 import { PHASE } from './gameState.js';
-import { recordRun, saveRun, clearRun } from './save.js';
+import { recordRun, saveRun, clearRun, dexMark, DEX_CAUGHT, DEX_SHINY } from './save.js';
 import { computeSynergy } from '../combat/synergy.js';
 import { computeAdjacency, propIncome } from '../combat/adjacency.js';
 import { OFFER_WAVES } from '../augments/augments.js';
@@ -59,7 +59,9 @@ export function placeTower(state, monsterId, px, py) {
   const def = MONSTERS[monsterId] || PROPS[monsterId];
   if (!def) return '알 수 없는 대상입니다';
 
+  if (def.prop && state.noProps) return '도전 규칙 「맨손」 — 도구를 놓을 수 없습니다';
   const fromSummon = state.pending && state.pending.id === monsterId;
+  const shiny = fromSummon ? !!state.pending.shiny : false;
   if (!def.prop && !fromSummon) return '포켓몬은 소환으로만 얻을 수 있습니다';
 
   const { c, r } = pxToTile(px, py);
@@ -76,7 +78,11 @@ export function placeTower(state, monsterId, px, py) {
   }
 
   const p = tileToPx(c, r);
-  const t = state.addTower(monsterId, c, r, p.x, p.y, cost);
+  const t = state.addTower(monsterId, c, r, p.x, p.y, cost, shiny);
+  // 도감 — 필드에 올린 순간 '잡음'으로 친다 (대결 판은 기록하지 않는다)
+  if (!def.prop && !state.noSave) {
+    dexMark(monsterId, DEX_CAUGHT | (shiny ? DEX_SHINY : 0));
+  }
   state.selectedTowerUid = t.uid;
   return t;
 }
@@ -101,6 +107,24 @@ export function beginWave(state) {
 
   state.phase = PHASE.COMBAT;
   spawner.startWave(state);
+
+  // 대결 — 상대가 보낸 적을 이번 웨이브에 얹는다.
+  // 큐 앞이 아니라 중간중간 끼워 넣어야 "한 덩어리로 몰려오는" 어색함이 없다.
+  if (state.incoming > 0) {
+    const extra = spawner.garbageFor(state, state.incoming);
+    const q = state.spawnQueue;
+    for (let i = 0; i < extra.length; i++) {
+      const at = Math.floor(((i + 1) / (extra.length + 1)) * q.length);
+      q.splice(at + i, 0, extra[i]);
+    }
+    state.pushLog(`상대가 보낸 적 ${state.incoming}기가 합류했다!`);
+    state.showBanner('적 증원', `상대가 보낸 ${state.incoming}기`, 1.6);
+    state.incoming = 0;
+  }
+
+  // 이번 웨이브를 얼마나 깔끔하게 넘기는지 재려고 시작 시점을 기록한다
+  state.waveClock = 0;
+  state.waveLifeAtStart = state.life;
   const boss = state.isBossWave();
   state.showBanner(
     boss ? `보스 웨이브 ${state.wave}` : `웨이브 ${state.wave}`,
@@ -168,8 +192,24 @@ export function update(state, dtRaw) {
     return;
   }
 
+  if (state.waveClock !== undefined) state.waveClock += dt;
+
   const cleared = state.spawnQueue.length === 0 && state.enemies.length === 0;
   if (cleared) {
+    // ── 대결 간섭 ──
+    // 라이프를 하나도 안 잃고 빠르게 정리했을수록 상대에게 적을 보낸다.
+    // "안전하게 두껍게" vs "얇게 빨리 깨서 압박" 이라는 축이 여기서 생긴다.
+    if (state.versusSend) {
+      const clean = state.life >= (state.waveLifeAtStart ?? state.life);
+      const par = 10 + state.wave * 1.1;              // 이 웨이브의 기준 시간(초)
+      const fast = Math.max(0, 1 - (state.waveClock || par) / par);
+      const n = clean ? Math.round(fast * (2 + state.wave * 0.22)) : 0;
+      if (n > 0) state.versusSend(n);
+    }
+
+    // 고스트 기록 — 이 웨이브를 끝냈을 때 남은 라이프
+    if (state.ghostLives) state.ghostLives[state.wave - 1] = state.life;
+
     eco.onWaveClear(state, state.wave);
     const inc = propIncome(state);
     if (inc > 0) {
@@ -217,7 +257,11 @@ export function autosave(state) {
 
 function finishRun(state) {
   const won = state.phase === PHASE.WIN;
-  const reached = won ? state.totalWaves : state.wave;
-  state.newBest = recordRun(state.stage.id, reached, won);
+  // 엔드리스는 끝이 없으므로 '도달한 웨이브'가 곧 기록이다.
+  // 도전 규칙 배수를 곱해 같은 웨이브라도 더 어렵게 간 쪽이 위로 온다.
+  const reached = state.isEndless
+    ? Math.round(state.wave * state.scoreMult)
+    : (won ? state.totalWaves : state.wave);
+  state.newBest = recordRun(state.stage.id, reached, won, state.isEndless);
   clearRun();
 }

@@ -41,7 +41,7 @@ export const STAGES = [
 
   // ══════════════════ 관동지방 ══════════════════
   {
-    id: 'pallet_road', theme: 'kanto_meadow',
+    id: 'pallet_road', region: 'kanto', theme: 'kanto_meadow',
     name: '1번도로', tag: '관동 · 입문',
     desc: '태초마을에서 이어지는 완만한 지그재그. 직선 구간이 길어 관통형이 잘 먹힌다.',
     waves: 30,
@@ -54,7 +54,7 @@ export const STAGES = [
   },
 
   {
-    id: 'viridian_forest', theme: 'kanto_forest',
+    id: 'viridian_forest', region: 'kanto', theme: 'kanto_forest',
     name: '상록숲', tag: '관동 · 나선',
     desc: '바깥에서 안으로 감기는 나선. 중앙에 놓은 한 기가 여러 구간을 동시에 사정권에 넣는다.',
     waves: 30,
@@ -72,7 +72,7 @@ export const STAGES = [
   },
 
   {
-    id: 'rock_tunnel', theme: 'kanto_cave',
+    id: 'rock_tunnel', region: 'kanto', theme: 'kanto_cave',
     name: '월귤 동굴', tag: '관동 · 세로접힘',
     desc: '세로로 네 번 완전히 접힌다. 폭 1칸 띠가 많아 떨어질수록 강해지는 고스트에게 유리하다.',
     waves: 32,
@@ -91,7 +91,7 @@ export const STAGES = [
   },
 
   {
-    id: 'rocket_hideout', theme: 'kanto_hideout',
+    id: 'rocket_hideout', region: 'kanto', theme: 'kanto_hideout',
     name: '로켓단 아지트', tag: '관동 · 격자',
     desc: '좁은 골이 다섯 번 접힌다. 사거리가 짧아도 여러 줄을 동시에 때린다 — 광역의 무대.',
     waves: 32,
@@ -111,7 +111,7 @@ export const STAGES = [
 
   // ══════════════════ 성도지방 ══════════════════
   {
-    id: 'goldenrod', theme: 'johto_city',
+    id: 'goldenrod', region: 'johto', theme: 'johto_city',
     name: '금빛시티', tag: '성도 · 가로왕복',
     desc: '가로로 길게 세 번 왕복한다. 관통 한 발이 줄 전체를 훑는 맵.',
     waves: 32,
@@ -127,7 +127,7 @@ export const STAGES = [
   },
 
   {
-    id: 'dark_cave', theme: 'johto_dark',
+    id: 'dark_cave', region: 'johto', theme: 'johto_dark',
     name: '어둠의 동굴', tag: '성도 · 미로',
     desc: '길이 여섯 번 꺾이며 좁아진다. 어디에 놓아도 사각이 생기니 배치 순서를 계획해야 한다.',
     waves: 34,
@@ -146,7 +146,7 @@ export const STAGES = [
   },
 
   {
-    id: 'iron_island', theme: 'johto_steel',
+    id: 'iron_island', region: 'johto', theme: 'johto_steel',
     name: '강철섬', tag: '성도 · 계단',
     desc: '왼쪽 아래에서 오른쪽 위로 계단처럼 올라간다. 대각으로 이어 놓으면 인접 보너스가 겹친다.',
     waves: 34,
@@ -165,7 +165,7 @@ export const STAGES = [
   },
 
   {
-    id: 'bell_tower', theme: 'johto_tower',
+    id: 'bell_tower', region: 'johto', theme: 'johto_tower',
     name: '방울탑', tag: '성도 · 층층내림',
     desc: '위에서 아래로 층층이 내려온다. 층 사이 좁은 띠에 놓아야 두 층을 동시에 때린다.',
     waves: 35,
@@ -185,7 +185,7 @@ export const STAGES = [
 
   // ══════════════════ 호연지방 ══════════════════
   {
-    id: 'coast_route', theme: 'hoenn_beach',
+    id: 'coast_route', region: 'hoenn', theme: 'hoenn_beach',
     name: '해안 도로', tag: '호연 · 장직선',
     desc: '가로 세 줄이 전부다. 관통형에게는 천국, 광역형에게는 무대가 없다.',
     waves: 34,
@@ -201,7 +201,7 @@ export const STAGES = [
   },
 
   {
-    id: 'safari_marsh', theme: 'hoenn_marsh',
+    id: 'safari_marsh', region: 'hoenn', theme: 'hoenn_marsh',
     name: '사파리 늪지', tag: '호연 · U자반복',
     desc: '깊은 U자가 세 번 반복된다. 골 안쪽 포켓이 이 맵의 요충지다.',
     waves: 34,
@@ -217,7 +217,7 @@ export const STAGES = [
   },
 
   {
-    id: 'magma_hideout', theme: 'hoenn_volcano',
+    id: 'magma_hideout', region: 'hoenn', theme: 'hoenn_volcano',
     name: '용암 지대', tag: '호연 · 굽이',
     desc: '짧게 네 번 굽이친다. 굽이마다 적이 몰려 서므로 광역 한 방이 크게 먹힌다.',
     waves: 35,
@@ -236,7 +236,7 @@ export const STAGES = [
   },
 
   {
-    id: 'sky_pillar', theme: 'hoenn_sky',
+    id: 'sky_pillar', region: 'hoenn', theme: 'hoenn_sky',
     name: '하늘기둥', tag: '호연 · 상하왕복',
     desc: '천장부터 바닥까지 네 번 오르내린다. 세로로 늘어놓는 배치가 유일한 해법.',
     waves: 36,
@@ -256,7 +256,7 @@ export const STAGES = [
 
   // ══════════════════ 신오지방 ══════════════════
   {
-    id: 'snow_route', theme: 'sinnoh_snow',
+    id: 'snow_route', region: 'sinnoh', theme: 'sinnoh_snow',
     name: '눈덮인 길', tag: '신오 · 계단지그재그',
     desc: '계단처럼 내려갔다 다시 올라온다. 구간 길이가 제각각이라 사거리 배분이 까다롭다.',
     waves: 35,
@@ -274,7 +274,7 @@ export const STAGES = [
   },
 
   {
-    id: 'coal_mine', theme: 'sinnoh_mine',
+    id: 'coal_mine', region: 'sinnoh', theme: 'sinnoh_mine',
     name: '지하 탄광', tag: '신오 · 빗살',
     desc: '위에서 아래로 다섯 번 파고든다. 빗살 사이 폭 2칸 띠가 유일한 자리다.',
     waves: 36,
@@ -293,7 +293,7 @@ export const STAGES = [
   },
 
   {
-    id: 'great_marsh', theme: 'sinnoh_marsh',
+    id: 'great_marsh', region: 'sinnoh', theme: 'sinnoh_marsh',
     name: '안개 습지', tag: '신오 · 넓은곡선',
     desc: '큰 곡선 세 개뿐이라 구간이 아주 길다. 사거리가 긴 에스퍼가 판을 주도한다.',
     waves: 36,
@@ -309,7 +309,7 @@ export const STAGES = [
   },
 
   {
-    id: 'spear_pillar', theme: 'sinnoh_pillar',
+    id: 'spear_pillar', region: 'sinnoh', theme: 'sinnoh_pillar',
     name: '창을기둥', tag: '신오 · 좌우대칭',
     desc: '좌우 대칭 경로. 한쪽에 화력을 몰면 반대쪽이 뚫리니 균형이 곧 실력이다.',
     waves: 38,
@@ -326,7 +326,7 @@ export const STAGES = [
 
   // ══════════════════ 하나지방 ══════════════════
   {
-    id: 'castelia', theme: 'unova_metro',
+    id: 'castelia', region: 'unova', theme: 'unova_metro',
     name: '하나 대도시', tag: '하나 · 블록격자',
     desc: '도심 블록을 뚫고 지나간다. 짧은 직선이 계속 이어져 어떤 유형이든 자리가 있다.',
     waves: 36,
@@ -345,7 +345,7 @@ export const STAGES = [
   },
 
   {
-    id: 'desert_resort', theme: 'unova_desert',
+    id: 'desert_resort', region: 'unova', theme: 'unova_desert',
     name: '사막 유적', tag: '하나 · 3줄왕복',
     desc: '맵 전체를 가로지르는 세 줄. 한 줄을 놓치면 그대로 끝까지 흘러 나간다.',
     waves: 38,
@@ -361,7 +361,7 @@ export const STAGES = [
   },
 
   {
-    id: 'cold_storage', theme: 'unova_frozen',
+    id: 'cold_storage', region: 'unova', theme: 'unova_frozen',
     name: '냉동 컨테이너', tag: '하나 · 촘촘접힘',
     desc: '폭 3칸으로 촘촘히 접힌다. 광역 한 발이 세 줄을 한꺼번에 덮는 유일한 맵.',
     waves: 38,
@@ -380,7 +380,7 @@ export const STAGES = [
   },
 
   {
-    id: 'plasma_castle', theme: 'unova_castle',
+    id: 'plasma_castle', region: 'unova', theme: 'unova_castle',
     name: '플라스마단 성', tag: '하나 · 최종',
     desc: '40웨이브. 적이 가장 빠르고 단단하다. 메가진화 없이는 후반이 버티지 않는다.',
     waves: 40,
@@ -401,3 +401,29 @@ export const STAGES = [
 
 export const DEFAULT_STAGE = STAGES[0];
 export const stageById = (id) => STAGES.find((s) => s.id === id) || DEFAULT_STAGE;
+
+/**
+ * 지방 — 도감·배지·스테이지 그룹핑에 쓴다.
+ * 배지는 힘이 아니라 '선택지'를 준다. 영구 스탯 강화를 넣으면
+ * "매 판 같은 조건에서 배치로 푸는" 이 게임의 축이 무너지기 때문이다.
+ */
+export const REGIONS = [
+  { id: 'kanto',  name: '관동', color: '#e0483a',
+    badge: '무지개 배지', perk: 'preAugment',
+    perkName: '판 시작 시 특성 1개를 미리 고른다' },
+  { id: 'johto',  name: '성도', color: '#f0c040',
+    badge: '승천 배지', perk: 'extraReroll',
+    perkName: '특성 리롤 +1회 (판당 3회)' },
+  { id: 'hoenn',  name: '호연', color: '#4a90d9',
+    badge: '비취 배지', perk: 'startStone',
+    perkName: '시작 시 진화의돌 +1' },
+  { id: 'sinnoh', name: '신오', color: '#9a6ce8',
+    badge: '비콜 배지', perk: 'ballDiscount',
+    perkName: '몬스터볼 값 상승폭 −25%' },
+  { id: 'unova',  name: '하나', color: '#5fbf9a',
+    badge: '전설 배지', perk: 'shinyLuck',
+    perkName: '이로치 확률 3배' },
+];
+
+export const regionOf = (stage) => REGIONS.find((r) => r.id === stage?.region) || null;
+export const stagesOfRegion = (regionId) => STAGES.filter((s) => s.region === regionId);

@@ -67,6 +67,18 @@ export function previewWave(wave) {
   };
 }
 
+/**
+ * 대결 간섭으로 보낸 적 n기.
+ * 그 웨이브의 정규 풀에서 뽑아 난이도가 갑자기 튀지 않게 한다 —
+ * 보스나 정예를 보내면 받는 쪽이 손쓸 방법이 없어 대결이 아니라 사고가 된다.
+ */
+export function garbageFor(state, n) {
+  const pool = normalPool(state.wave);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(pool[(state.wave + i) % pool.length]);
+  return out;
+}
+
 export function startWave(state) {
   state.spawnQueue = composeWave(state.wave);
   state.spawnTimer = 0;

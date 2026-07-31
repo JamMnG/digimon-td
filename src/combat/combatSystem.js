@@ -23,12 +23,19 @@ const NO_MODS = {
 const NO_ADJ = { atk: 0, rate: 0, range: 0, splash: 0, crit: 0 };
 
 /** 시너지 + 증강 + 인접 효과가 반영된 실효 스탯 */
+/**
+ * 이로치 보정 — 공격력·공속에 각각 +8%.
+ * 수집 재미가 주목적이라 판을 뒤집을 만큼 주지는 않는다.
+ */
+export const SHINY_MULT = 0.08;
+
 export function effectiveStats(tower, synergy, mods = NO_MODS, adj = NO_ADJ) {
   const d = tower.def;
+  const shiny = tower.shiny ? SHINY_MULT : 0;
   const f = d.field;
   const a = adj || NO_ADJ;
-  const mAtk = 1 + bonusFor(synergy, tower, 'atk') + mods.atkMult + (mods.fieldAtk[f] || 0) + a.atk;
-  const mRate = 1 + bonusFor(synergy, tower, 'rate') + mods.rateMult + (mods.fieldRate[f] || 0) + a.rate;
+  const mAtk = 1 + bonusFor(synergy, tower, 'atk') + mods.atkMult + (mods.fieldAtk[f] || 0) + a.atk + shiny;
+  const mRate = 1 + bonusFor(synergy, tower, 'rate') + mods.rateMult + (mods.fieldRate[f] || 0) + a.rate + shiny;
   const mRange = 1 + bonusFor(synergy, tower, 'range') + mods.rangeMult + (mods.fieldRange[f] || 0) + a.range;
   const mSplash = 1 + bonusFor(synergy, tower, 'splash') + mods.splashMult + (mods.fieldSplash[f] || 0) + a.splash;
   const aCrit = bonusFor(synergy, tower, 'crit') + mods.critAdd + (mods.fieldCrit[f] || 0) + a.crit;

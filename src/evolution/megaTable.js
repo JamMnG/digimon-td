@@ -17,6 +17,7 @@
 import { BALANCE } from '../config/balance.js';
 import { MONSTERS } from '../data/monsters.js';
 import * as eco from '../economy/economyManager.js';
+import { dexMark, DEX_CAUGHT, DEX_GROWN, DEX_SHINY } from '../core/save.js';
 
 export const MEGA = [
   {
@@ -164,6 +165,7 @@ export function megaEvolve(state, keep, consume) {
 
   state.removeTower(consume);
 
+  if (!state.noSave) dexMark(recipe.result, DEX_CAUGHT | DEX_GROWN | (keep.shiny ? DEX_SHINY : 0));
   keep.monsterId = recipe.result;
   keep.def = MONSTERS[recipe.result];
   keep.invested = invested;

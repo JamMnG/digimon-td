@@ -62,17 +62,49 @@ export function summonOdds() {
 /** 이번 볼 값 — 던질수록 오른다 */
 export function summonCost(state) {
   const S = BALANCE.summon;
-  const raw = S.base + S.step * (state.summons || 0);
+  // 값 상승폭은 도전 규칙('고가정책' ×2)과 배지 특전('비콜 배지' −25%)이 함께 건드린다
+  const stepMult = (state.costlyBall ? 2 : 1) * (1 + (state.mods?.ballStepMult || 0));
+  const raw = S.base + S.step * stepMult * (state.summons || 0);
   return Math.max(10, Math.round(raw * (1 + (state.mods?.towerCostMult || 0))));
 }
 
-/** 가중 추첨 — 시드 스트림을 쓴다 (대결 모드에서 n번째 소환이 서로 같아야 한다) */
-export function rollSummon(rng) {
-  return rng.weighted(SUMMON_POOL, (e) => e.weight);
+/**
+ * 가중 추첨 — 시드 스트림을 쓴다 (대결 모드에서 n번째 소환이 서로 같아야 한다).
+ * banned 에 든 라인은 풀에서 빠진다 (대결 밴픽).
+ * 두 사람의 밴 목록이 같으므로 뽑히는 순서도 그대로 같다.
+ */
+export function rollSummon(rng, banned) {
+  const pool = banned?.length
+    ? SUMMON_POOL.filter((e) => !banned.includes(lineOf(e.id)))
+    : SUMMON_POOL;
+  return rng.weighted(pool.length ? pool : SUMMON_POOL, (e) => e.weight);
 }
 
+/** 어떤 id 든 그 라인의 기본형 id 로 — 밴은 라인 단위다 */
+export function lineOf(id) {
+  for (const start of Object.keys(MONSTERS)) {
+    if (MONSTERS[start].tier !== 1) continue;
+    let cur = start;
+    while (cur) {
+      if (cur === id) return start;
+      cur = (MONSTERS[cur].evolvesTo || [])[0];
+    }
+  }
+  return id;
+}
+
+/** 밴 후보 — 기본형 14종 */
+export const LINE_HEADS = Object.keys(MONSTERS).filter((id) => MONSTERS[id].tier === 1);
+
 /**
- * 볼을 던진다. 성공하면 { id, grade } 를 state.pending 에 올려두고,
+ * 이로치(색이 다른 포켓몬) 기본 확률.
+ * 원작의 1/4096 은 이 게임 한 판(볼 20~40회)에서 평생 못 보는 값이라,
+ * "한 판에 한 번쯤 나오면 기억에 남는" 선까지 끌어올렸다.
+ */
+export const SHINY_CHANCE = 1 / 220;
+
+/**
+ * 볼을 던진다. 성공하면 { id, grade, shiny } 를 state.pending 에 올려두고,
  * 플레이어가 타일을 클릭해 배치한다. 배치 전에는 다시 소환할 수 없다.
  */
 export function summon(state) {
@@ -82,10 +114,16 @@ export function summon(state) {
 
   state.bits -= cost;
   state.summons = (state.summons || 0) + 1;
-  const e = rollSummon(state.rng.summon);
-  state.pending = { id: e.id, grade: e.grade, paid: cost };
-  state.pushLog(`포획! — ${MONSTERS[e.id].name} (${GRADE[e.grade].name})`);
-  return { ok: true, entry: e, cost };
+  const e = rollSummon(state.rng.summon, state.bannedLines);
+  // 이로치 판정도 시드 스트림을 쓴다 — 대결에서 둘의 운이 같아야 한다
+  const luck = 1 + (state.mods?.shinyLuck || 0);
+  const shiny = state.rng.summon.next() < SHINY_CHANCE * luck;
+
+  state.pending = { id: e.id, grade: e.grade, paid: cost, shiny };
+  state.pushLog(shiny
+    ? `✨ 이로치 ${MONSTERS[e.id].name} 포획!`
+    : `포획! — ${MONSTERS[e.id].name} (${GRADE[e.grade].name})`);
+  return { ok: true, entry: e, cost, shiny };
 }
 
 /** 배치를 포기하고 절반만 돌려받는다 — 놓을 자리가 없을 때의 탈출구 */

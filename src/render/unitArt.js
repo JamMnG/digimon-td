@@ -34,16 +34,42 @@ const ATTR_COLOR = { FIRE: '#4fc3f7', GRASS: '#6ddf9c', WATER: '#c77dff' };
 
 const cache = new Map();
 
+/** #rrggbb 의 색상(hue)만 deg 만큼 돌린다 — 이로치 팔레트용 */
+function shiftHue(hex, deg) {
+  if (typeof hex !== 'string' || hex[0] !== '#') return hex;
+  const n = parseInt(hex.slice(1), 16);
+  let r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) {
+    if (mx === r) h = ((g - b) / d) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  h = (h * 60 + deg + 360) % 360;
+  const l = (mx + mn) / 2;
+  const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  const c = (1 - Math.abs(2 * l - 1)) * sat;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const seg = Math.floor(h / 60);
+  const rgb = [[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][seg] || [0,0,0];
+  const to = (v) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return '#' + to(rgb[0]) + to(rgb[1]) + to(rgb[2]);
+}
+
 /**
  * 몬스터 하나의 스프라이트(캔버스). 한 번만 굽고 캐시한다.
  * attack=true 면 공격 포즈 프레임을 굽는다 — 프레임 두 장짜리 애니메이션.
  */
-export function spriteFor(def, attack = false) {
-  const key = def.name + (attack ? '!' : '');
+export function spriteFor(def, attack = false, shiny = false) {
+  const key = def.name + (attack ? '!' : '') + (shiny ? '*' : '');
   if (cache.has(key)) return cache.get(key);
 
   const L = { ...DEFAULT_LOOK, ...(def.look || {}) };
-  const base = def.color;
+  // 이로치는 색만 돌린다 — 도트를 새로 찍지 않아도 "다른 개체"로 읽힌다.
+  // 원작도 팔레트 교체 방식이라 개념이 같다.
+  const base = shiny ? shiftHue(def.color, 148) : def.color;
   const C = {
     base,
     light: shade(base, 0.34),
@@ -86,10 +112,11 @@ export function spriteFor(def, attack = false) {
  * 캔버스를 그대로 넘기면 innerHTML 로 갈아끼울 때마다 사라지므로 <img> 로 쓴다.
  */
 const urlCache = new Map();
-export function spriteURL(def) {
-  if (urlCache.has(def.id)) return urlCache.get(def.id);
-  const url = spriteFor(def).toDataURL('image/png');
-  urlCache.set(def.id, url);
+export function spriteURL(def, shiny = false) {
+  const key = def.id + (shiny ? '*' : '');
+  if (urlCache.has(key)) return urlCache.get(key);
+  const url = spriteFor(def, false, shiny).toDataURL('image/png');
+  urlCache.set(key, url);
   return url;
 }
 
@@ -98,8 +125,8 @@ export function spriteURL(def) {
 // "키웠다"는 감각이 안 오고, 필드에서 무엇이 주력인지도 한눈에 안 읽힌다.
 const TIER_SCALE = { 1: 0.82, 2: 0.92, 3: 1.0, 4: 1.08 };
 
-export function drawUnit(ctx, def, cx, cy, s, aim = 0, attacking = false) {
-  const cv = spriteFor(def, attacking);
+export function drawUnit(ctx, def, cx, cy, s, aim = 0, attacking = false, shiny = false) {
+  const cv = spriteFor(def, attacking, shiny);
   // 타일(44px)을 넘지 않게 — 더 키우면 세로로 붙은 유닛끼리 겹친다
   const dw = s * 1.24 * (TIER_SCALE[def.tier] ?? 1);
   const dh = dw * (H / W);
