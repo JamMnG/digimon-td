@@ -32,6 +32,12 @@ state.speed = save.getSetting('speed', 1);
 let hover = null;
 const tutorial = createTutorial();
 
+// 이번 세션에서 실제로 스테이지에 들어갔는가.
+// 부팅 직후 state 는 아무도 시작하지 않은 기본 스테이지다. 이때 저장하면
+// 진짜 저장된 판을 빈 판으로 덮어써 버린다 — 스테이지 목록에 있는 동안
+// 탭을 닫거나 앱을 전환하면 저장이 날아가던 원인이 바로 이것이었다.
+let runLive = false;
+
 const HINT_DEFAULT = '소환(Q)으로 디지몬을 뽑고, 잔디 위 빈 칸을 클릭해 배치하세요.';
 
 const ui = initUI(state, {
@@ -51,7 +57,7 @@ const ui = initUI(state, {
     state.buildMonsterId = state.pending.id;
     state.buildDef = defOf(state.pending.id);
     ui.setHint(`${state.buildDef.name} 소환! 잔디 위 빈 칸을 클릭해 배치하세요.`);
-    stage.autosave(state);
+    flushSave();
     ui.invalidate();
   },
 
@@ -60,14 +66,14 @@ const ui = initUI(state, {
     state.buildMonsterId = null;
     state.buildDef = null;
     ui.setHint(`배치를 취소했습니다 (+${back} 비트)`);
-    stage.autosave(state);
+    flushSave();
     ui.invalidate();
   },
 
   onBuyItem: (item) => {
     if (eco.buyItem(state, item)) {
       ui.setHint(`${eco.ITEM_NAME[item]} 구매 완료`);
-      stage.autosave(state);
+      flushSave();
     } else {
       ui.setHint('비트가 부족합니다.', true);
     }
@@ -90,7 +96,7 @@ const ui = initUI(state, {
     const from = t.def.name;
     if (evolve(state, t, toId)) {
       ui.setHint(`${from} → ${t.def.name} 진화 완료!`);
-      stage.autosave(state);
+      flushSave();
     } else {
       ui.setHint('진화 조건을 충족하지 못했습니다.', true);
     }
@@ -104,7 +110,7 @@ const ui = initUI(state, {
     const names = [keep.def.name, partner.def.name];
     if (jogress(state, keep, partner)) {
       ui.setHint(`${names[0]} + ${names[1]} → ${keep.def.name} 죠그레스 성공!`);
-      stage.autosave(state);
+      flushSave();
     } else {
       ui.setHint('죠그레스 조건을 충족하지 못했습니다.', true);
     }
@@ -119,44 +125,55 @@ const ui = initUI(state, {
     state.pushLog(`${t.def.name} 매각 — 비트 +${refund}`);
     state.removeTower(t);
     ui.setHint(`매각 완료 (+${refund} 비트)`);
-    stage.autosave(state);
+    flushSave();
     ui.invalidate();
   },
 
   onTakeAugment: (id) => {
     if (state.takeAugment(id)) {
       ui.setHint('증강 획득 — 이번 판 내내 유지됩니다.');
-      stage.autosave(state);
+      flushSave();
     }
     ui.invalidate();
   },
 
   onReroll: () => {
     if (!state.rerollOffer()) ui.setHint('리롤을 모두 사용했습니다.', true);
-    stage.autosave(state);
+    flushSave();
     ui.invalidate();
   },
 
   onRestart: () => {
     state.reset();
     state.speed = save.getSetting('speed', 1);
+    runLive = true;
     afterStageChange();
+    flushSave();
   },
 
+  // 진행 중인 판에서 메뉴로 나가는 순간 — 여기서 저장하지 않으면
+  // 나갔다 온 사이의 진행이 통째로 사라진다
+  onLeaveToMenu: () => { flushSave(); },
+
+  // 스테이지 카드를 눌러 '새로' 시작하는 경로. UI가 이미 확인을 받았다.
   onSelectStage: (stageId) => {
     if (stageId === 'tutorial') { startTutorial(); return; }
     stopTutorial();
     save.clearRun();
     state.loadStage(stageById(stageId));
     state.speed = save.getSetting('speed', 1);
+    runLive = true;
     afterStageChange();
+    flushSave();                     // 들어선 즉시 이어하기 지점을 만든다
     state.showBanner(state.stage.name, state.stage.tag || '', 2.0);
   },
 
   onResume: () => {
     const run = save.loadRun();
     if (!run) return;
+    stopTutorial();
     state.restore(run);
+    runLive = true;
     afterStageChange();
     state.showBanner('이어하기', `웨이브 ${state.wave}`, 1.8);
   },
@@ -164,6 +181,7 @@ const ui = initUI(state, {
   onResetProgress: () => {
     save.resetProgress();
     stopTutorial();
+    runLive = false;
     state.reset();
     afterStageChange();
   },
@@ -188,6 +206,7 @@ function onTutorialStep() { ui.invalidate(); }
 
 function startTutorial() {
   save.clearRun();
+  runLive = false;                    // 튜토리얼은 이어하기 대상이 아니다
   ui.closeStageSelect();
   state.loadStage(stageById('tutorial'));
   state.speed = save.getSetting('speed', 1);
@@ -277,7 +296,7 @@ canvas.addEventListener('click', (ev) => {
     } else {
       state.pushLog(`${res.def.name} 배치`);
       ui.setHint(`${res.def.name} 배치 완료. 계속 배치하려면 다시 클릭하세요.`);
-      stage.autosave(state);
+      flushSave();
       // 소환분은 1기뿐이고, 설치물은 비트가 남는 동안 연속 배치
       const def = defOf(state.buildMonsterId);
       if (!def.prop || state.bits < stage.towerCost(state, def)) {
@@ -306,17 +325,29 @@ window.addEventListener('keydown', (ev) => {
   }
 });
 
-// 탭을 닫아도 준비 페이즈 지점은 남는다
-window.addEventListener('beforeunload', () => { stage.autosave(state); });
+// 창을 닫거나 앱을 전환해도 지점이 남게 한다.
+// 모바일 브라우저는 beforeunload 를 거의 쏘지 않으므로 pagehide/visibilitychange 가 본선이다.
+// 단, 판에 들어가지 않았으면 절대 쓰지 않는다 (빈 판이 진짜 저장을 덮어쓴다).
+function flushSave() {
+  if (!runLive || tutorial.active) return false;
+  return stage.autosave(state);
+}
+window.addEventListener('beforeunload', flushSave);
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
 
 // ── 메인 루프 ──
 function tick(dt, now = performance.now()) {
-  stage.update(state, dt);
-  if (tutorial.active) {
-    const before = tutorial.index;
-    tutorial.update(state, onTutorialStep);
-    if (!tutorial.active) finishTutorial();
-    else if (tutorial.index !== before) syncTutorial();
+  // 스테이지 목록이 덮고 있는 동안에는 게임 시간이 흐르지 않는다.
+  // (예전에는 계속 흘러서, 메뉴를 보는 사이 패배하면 저장까지 지워졌다)
+  if (!ui.isMenuOpen()) {
+    stage.update(state, dt);
+    if (tutorial.active) {
+      const before = tutorial.index;
+      tutorial.update(state, onTutorialStep);
+      if (!tutorial.active) finishTutorial();
+      else if (tutorial.index !== before) syncTutorial();
+    }
   }
   drawFrame(ctx, state, hover);
   ui.refresh(now);

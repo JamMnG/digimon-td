@@ -85,6 +85,10 @@ export function beginWave(state) {
   if (state.phase !== PHASE.PREP) return false;
   if (state.offer) return false;      // 증강을 고르기 전에는 다음 웨이브가 시작되지 않는다
 
+  // 전투 중에 나가도 잃을 게 없도록, 웨이브를 여는 순간을 따로 떠 둔다.
+  // 유지비 청구 전 시점이라 이어하기하면 이 웨이브의 준비 페이즈로 정확히 돌아간다.
+  state.waveStart = state.serialize();
+
   // 유지비는 웨이브를 시작하는 순간 청구된다 — 준비 페이즈 내내 매각해 마련할 수 있다
   const due = rentDue(state);
   if (due > 0) {
@@ -193,10 +197,18 @@ export function maybeOfferAugment(state) {
   return true;
 }
 
-/** 준비 페이즈 스냅샷 저장 — 전투 중에는 저장하지 않는다 */
+/**
+ * 이어하기 지점 저장.
+ *  준비 페이즈 → 지금 이 순간을 그대로 저장한다.
+ *  전투 중     → 웨이브를 연 순간으로 저장한다. 전투 상태(적·투사체·쿨다운)는
+ *                복원할 수 없으므로 이번 웨이브를 다시 치르게 되지만,
+ *                최소한 나갔다고 판이 통째로 날아가지는 않는다.
+ *  승패 확정 후 → 저장하지 않는다 (판이 끝나면 스냅샷은 지워져야 한다).
+ */
 export function autosave(state) {
-  if (state.phase !== PHASE.PREP) return false;
-  return saveRun(state.serialize());
+  if (state.phase === PHASE.PREP) return saveRun(state.serialize());
+  if (state.phase === PHASE.COMBAT && state.waveStart) return saveRun(state.waveStart);
+  return false;
 }
 
 function finishRun(state) {

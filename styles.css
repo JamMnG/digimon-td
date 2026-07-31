@@ -277,9 +277,18 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
   border: 3px solid var(--gold); border-radius: 14px; padding: 14px 16px;
   box-shadow: 0 5px 0 #6b5314;
 }
+.resume + .resume { margin-top: 10px; }
 .resume .rz-t { font-weight: 700; font-size: 15px; }
 .resume .rz-s { color: #e8d9ae; font-size: 12px; }
 .resume .gbtn { margin-left: auto; }
+.resume .gbtn + .gbtn { margin-left: 0; }
+
+/* 저장이 지워질 수 있는 선택 / 저장이 아예 안 되는 상황 */
+.resume.danger {
+  background: linear-gradient(#5c2b2b, #431c1c);
+  border-color: #d9534f; box-shadow: 0 5px 0 #7a2b28;
+}
+.resume.danger .rz-s { color: #f3cfcf; }
 
 .stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .stagecard {
@@ -293,6 +302,7 @@ canvas { display: block; background: #a99039; cursor: pointer; width: 100%; heig
 .stagecard:active:not(.locked) { transform: translateY(5px); box-shadow: 0 0 0; }
 .stagecard.locked { opacity: .55; cursor: not-allowed; border-style: dashed; }
 .stagecard.cleared { border-color: var(--gold); }
+.stagecard.saved { border-color: #7ee081; }
 .sc-top { display: flex; align-items: center; gap: 8px; }
 .sc-top .nm { font-size: 17px; font-weight: 700; }
 .sc-no {

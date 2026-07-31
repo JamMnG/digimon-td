@@ -64,6 +64,7 @@ export class GameState {
     this.spawnQueue = [];
     this.spawnTimer = 0;
     this.clearDelay = 0;
+    this.waveStart = null;          // 이번 웨이브를 시작한 순간의 스냅샷 (전투 중 이어하기용)
 
     this.synergy = {};
     this.adjacency = {};            // uid → 인접 보정

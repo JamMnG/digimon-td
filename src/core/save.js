@@ -27,6 +27,19 @@ function write(key, value) {
   catch { return false; }
 }
 
+/**
+ * localStorage 를 실제로 쓸 수 있는가.
+ * 시크릿 모드·저장공간 차단·서드파티 쿠키 차단(iframe 안) 에서는 예외가 난다.
+ * 이 경우 저장이 조용히 실패하므로 UI가 미리 알려줘야 한다.
+ */
+export function storageWorks() {
+  try {
+    localStorage.setItem('__dtd_probe__', '1');
+    localStorage.removeItem('__dtd_probe__');
+    return true;
+  } catch { return false; }
+}
+
 // ── 진행도 ──
 let meta = null;
 
@@ -109,6 +122,8 @@ export function loadRun() {
   const run = read(RUN_KEY);
   if (!run || run.v !== 1) return null;
   if (!STAGES.some((s) => s.id === run.stageId)) return null;
+  // 튜토리얼은 이어하기 대상이 아니다. 구버전이 남긴 튜토리얼 스냅샷은 여기서 버린다.
+  if (run.stageId === 'tutorial') { clearRun(); return null; }
   return run;
 }
 

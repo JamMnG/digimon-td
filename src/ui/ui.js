@@ -6,7 +6,7 @@ import { MONSTERS, ATTR, FIELD, KIND, STARTERS } from '../data/monsters.js';
 import { ENEMIES } from '../data/enemies.js';
 import { STAGES } from '../data/stages.js';
 import { PHASE } from '../core/gameState.js';
-import { stageRecord, unlockState, loadRun } from '../core/save.js';
+import { stageRecord, unlockState, loadRun, storageWorks } from '../core/save.js';
 import { BALANCE, TILE } from '../config/balance.js';
 import { effectiveStats } from '../combat/combatSystem.js';
 import { evolveOptions, evolveCost, sellValue } from '../evolution/evolutionTree.js';
@@ -61,8 +61,14 @@ export function initUI(state, handlers) {
   el.start.addEventListener('click', () => handlers.onStartWave());
   el.speed.addEventListener('click', () => handlers.onToggleSpeed());
   el.restart.addEventListener('click', () => handlers.onRestart());
+  // 판이 끝난 뒤의 '메뉴로' — 되돌아갈 판이 없다
   el.toMenu.addEventListener('click', () => openStageSelect());
-  el.menu.addEventListener('click', () => openStageSelect());
+  // HUD의 ☰ — 진행 중인 판에서 나가는 길. 나가기 전에 반드시 저장하고,
+  // 돌아갈 수 있게 표시해 둔다.
+  el.menu.addEventListener('click', () => {
+    handlers.onLeaveToMenu();
+    openStageSelect({ resumable: true });
+  });
   el.reset.addEventListener('click', () => {
     if (confirm('모든 스테이지 기록과 진행 중인 판이 지워집니다. 계속할까요?')) {
       handlers.onResetProgress();
@@ -148,18 +154,55 @@ export function initUI(state, handlers) {
   }
 
   // ── 스테이지 선택 ──
-  function openStageSelect() {
+  // 화면을 덮고 있는 동안에는 게임 시간이 멈춘다 (main.js가 isMenuOpen을 본다).
+  // 예전에는 멈추지 않아서, 메뉴를 보는 사이 뒤에서 웨이브가 굴러가다
+  // 패배하면 저장까지 지워졌다.
+  let liveRun = false;      // 지금 화면 뒤에 되돌아갈 판이 살아 있는가
+
+  function openStageSelect(opts = {}) {
+    liveRun = !!opts.resumable;
     drawStageSelect();
     el.screen.classList.remove('hidden');
   }
   function closeStageSelect() {
     el.screen.classList.add('hidden');
   }
+  const isMenuOpen = () => !el.screen.classList.contains('hidden');
 
   function drawStageSelect() {
-    // 이어하기
     const run = loadRun();
     el.resumeBox.innerHTML = '';
+
+    // 저장 자체가 막혀 있으면 먼저 알린다 — 조용히 실패하는 게 제일 나쁘다
+    if (!storageWorks()) {
+      const warn = document.createElement('div');
+      warn.className = 'resume danger';
+      warn.innerHTML = `
+        <div>
+          <div class="rz-t">이 브라우저에서는 저장이 되지 않습니다</div>
+          <div class="rz-s">시크릿/프라이빗 모드이거나 사이트 데이터가 차단돼 있습니다. 일반 창에서 열면 진행도가 남습니다.</div>
+        </div>`;
+      el.resumeBox.appendChild(warn);
+    }
+
+    // 게임으로 돌아가기 — 나갔다가 그대로 복귀하는 길
+    if (liveRun) {
+      const back = document.createElement('div');
+      back.className = 'resume';
+      back.innerHTML = `
+        <div>
+          <div class="rz-t">진행 중인 판이 화면 뒤에서 기다리고 있습니다</div>
+          <div class="rz-s">메뉴를 보는 동안 게임 시간은 멈춰 있습니다.</div>
+        </div>`;
+      const b = document.createElement('button');
+      b.className = 'gbtn gold';
+      b.textContent = '◀ 게임으로 돌아가기';
+      b.addEventListener('click', () => closeStageSelect());
+      back.appendChild(b);
+      el.resumeBox.appendChild(back);
+    }
+
+    // 이어하기 (저장된 판을 불러온다)
     if (run) {
       const st = STAGES.find((s) => s.id === run.stageId);
       const box = document.createElement('div');
@@ -183,10 +226,12 @@ export function initUI(state, handlers) {
     STAGES.forEach((st, i) => {
       const rec = stageRecord(st.id);
       const lock = unlockState(st);
+      const saved = run && run.stageId === st.id;
       if (rec.cleared) cleared++;
 
       const card = document.createElement('button');
-      card.className = 'stagecard' + (lock.unlocked ? '' : ' locked') + (rec.cleared ? ' cleared' : '');
+      card.className = 'stagecard' + (lock.unlocked ? '' : ' locked')
+        + (rec.cleared ? ' cleared' : '') + (saved ? ' saved' : '');
       card.disabled = !lock.unlocked;
       card.innerHTML = `
         <div class="sc-top">
@@ -204,17 +249,55 @@ export function initUI(state, handlers) {
              <span class="mix">속도 ×${(st.scale?.speed ?? 1).toFixed(2)}</span>
              ${rec.cleared ? '<span class="mix" style="color:#ffd166">★ 클리어</span>' : ''}
              <span class="mix">최고 ${rec.best}</span>
+             ${saved ? '<span class="mix" style="color:#7ee081">● 저장된 판 있음</span>' : ''}
            </div>`
         : `<div class="sc-lock">🔒 ${lock.reason}</div>`;
       card.appendChild(rest);
 
       if (lock.unlocked) {
-        card.addEventListener('click', () => { handlers.onSelectStage(st.id); closeStageSelect(); });
+        card.addEventListener('click', () => {
+          // 카드를 누르는 건 '새로 시작'이다. 저장된 판이 있으면 먼저 물어본다 —
+          // 예전에는 여기서 말없이 저장을 지워버려서, 나갔다 들어오면 판이 사라졌다.
+          if (run) { askNewRun(st, run); return; }
+          handlers.onSelectStage(st.id);
+          closeStageSelect();
+        });
       }
       el.stageGrid.appendChild(card);
     });
 
     el.progressLine.textContent = `클리어 ${cleared} / ${STAGES.length} 스테이지`;
+  }
+
+  /** 저장된 판이 있는데 새 판을 시작하려 할 때 — 지우기 전에 반드시 거친다 */
+  function askNewRun(st, run) {
+    const from = STAGES.find((s) => s.id === run.stageId);
+    const same = run.stageId === st.id;
+    el.resumeBox.innerHTML = '';
+
+    const box = document.createElement('div');
+    box.className = 'resume danger';
+    box.innerHTML = `
+      <div>
+        <div class="rz-t">${st.name} — 처음부터 시작할까요?</div>
+        <div class="rz-s">${same ? '저장된 판' : `${from ? from.name : '저장된 판'}`}
+          (웨이브 ${run.wave} · 디지몬 ${run.towers.length}기)이 지워집니다.</div>
+      </div>`;
+
+    const keep = document.createElement('button');
+    keep.className = 'gbtn gold';
+    keep.textContent = same ? '이어서 하기' : `${from ? from.name : ''} 이어하기`;
+    keep.addEventListener('click', () => { handlers.onResume(); closeStageSelect(); });
+
+    const go = document.createElement('button');
+    go.className = 'gbtn tiny ghost';
+    go.textContent = '지우고 새로 시작';
+    go.addEventListener('click', () => { handlers.onSelectStage(st.id); closeStageSelect(); });
+
+    box.appendChild(keep);
+    box.appendChild(go);
+    el.resumeBox.appendChild(box);
+    el.resumeBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /** 스테이지 카드용 경로 썸네일 — 어떤 맵인지 글보다 빠르게 알려준다 */
@@ -699,7 +782,7 @@ export function initUI(state, handlers) {
   const click = (sel) => { const n = document.querySelector(sel); if (n && !n.disabled) n.click(); };
 
   return { refresh, setHint, invalidate, setTab, openStageSelect, closeStageSelect,
-           drawStageSelect, showCoach, click };
+           drawStageSelect, showCoach, click, isMenuOpen };
 }
 
 export { ENEMIES, TILE };
