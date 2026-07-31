@@ -50,14 +50,9 @@ export function summonCost(state) {
   return Math.max(10, Math.round(raw * (1 + (state.mods?.towerCostMult || 0))));
 }
 
-/** 가중 추첨 */
-export function rollSummon() {
-  let r = Math.random() * TOTAL;
-  for (const e of SUMMON_POOL) {
-    r -= e.weight;
-    if (r <= 0) return e;
-  }
-  return SUMMON_POOL[0];
+/** 가중 추첨 — 시드 스트림을 쓴다 (대결 모드에서 n번째 소환이 서로 같아야 한다) */
+export function rollSummon(rng) {
+  return rng.weighted(SUMMON_POOL, (e) => e.weight);
 }
 
 /**
@@ -71,7 +66,7 @@ export function summon(state) {
 
   state.bits -= cost;
   state.summons = (state.summons || 0) + 1;
-  const e = rollSummon();
+  const e = rollSummon(state.rng.summon);
   state.pending = { id: e.id, grade: e.grade, paid: cost };
   state.pushLog(`소환 — ${MONSTERS[e.id].name} (${GRADE[e.grade].name})`);
   return { ok: true, entry: e, cost };

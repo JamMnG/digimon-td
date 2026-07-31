@@ -12,6 +12,7 @@ import { MONSTERS } from '../data/monsters.js';
 import { PROPS } from '../data/props.js';
 
 import { computeMods, applyInstant, augmentById, rollOffer, REROLLS } from '../augments/augments.js';
+import { makeStreams, dumpStreams, loadStreams, randomSeed } from './rng.js';
 
 /** 디지몬이든 설치물이든 id 하나로 정의를 찾는다 */
 export const defOf = (id) => MONSTERS[id] || PROPS[id] || null;
@@ -23,11 +24,16 @@ export const nextUid = () => _uid++;
 
 export class GameState {
   constructor(stage = DEFAULT_STAGE) {
+    this.seed = randomSeed();
     this.loadStage(stage);
   }
 
-  /** 스테이지 교체 + 초기화 */
-  loadStage(stage) {
+  /**
+   * 스테이지 교체 + 초기화.
+   * seed 를 주면 그 운으로 시작한다 — 대결 모드에서 둘이 같은 값을 쓴다.
+   */
+  loadStage(stage, seed = null) {
+    if (seed != null) this.seed = seed;
     this.stage = stage;
     this.path = buildPath(stage.waypoints, stage.platforms);
     this.reset();
@@ -44,6 +50,7 @@ export class GameState {
 
   reset() {
     const s = { ...BALANCE.start, ...(this.stage.start || {}) };
+    this.rng = makeStreams(this.seed);   // 소환·증강·드랍 스트림
     this.phase = PHASE.PREP;
     this.bits = s.bits;
     this.life = s.life;
@@ -65,6 +72,7 @@ export class GameState {
     this.spawnTimer = 0;
     this.clearDelay = 0;
     this.waveStart = null;          // 이번 웨이브를 시작한 순간의 스냅샷 (전투 중 이어하기용)
+    this.noSave = false;            // 대결 판 — 이어하기로 같은 운을 다시 쓰지 못하게 막는다
 
     this.synergy = {};
     this.adjacency = {};            // uid → 인접 보정
@@ -96,13 +104,13 @@ export class GameState {
   hasAugment(id) { return this.augments.includes(id); }
 
   openOffer(wave) {
-    this.offer = { list: rollOffer(this.augments), wave };
+    this.offer = { list: rollOffer(this.augments, this.rng.augment), wave };
   }
 
   rerollOffer() {
     if (!this.offer || this.rerolls <= 0) return false;
     this.rerolls--;
-    this.offer.list = rollOffer(this.augments);
+    this.offer.list = rollOffer(this.augments, this.rng.augment);
     return true;
   }
 
@@ -185,6 +193,8 @@ export class GameState {
     return {
       v: 1,
       stageId: this.stage.id,
+      seed: this.seed,
+      rs: dumpStreams(this.rng),     // 난수 스트림 위치 — 이어해도 같은 운을 이어간다
       wave: this.wave,
       bits: Math.floor(this.bits),
       life: this.life,
@@ -204,7 +214,8 @@ export class GameState {
   }
 
   restore(snap) {
-    this.loadStage(stageById(snap.stageId));
+    this.loadStage(stageById(snap.stageId), snap.seed ?? this.seed);
+    loadStreams(this.rng, snap.rs);
     this.wave = snap.wave;
     this.bits = snap.bits;
     this.life = snap.life;

@@ -59,7 +59,9 @@ export function onKill(state, enemy) {
   gain(state, enemy.bounty); // bounty는 스폰 시점에 웨이브 스케일링이 이미 적용됨
   state.kills++;
   const dropChance = BALANCE.economy.eliteChipChance * (1 + (state.mods?.eliteDropMult || 0));
-  if (enemy.cls === 'elite' && Math.random() < dropChance) {
+  // 시드 스트림 — 대결 모드에서 두 사람의 드랍 운이 같아야 한다.
+  // 웨이브 편성이 결정적이라 정예 수도 같으므로 "n번째 정예"가 서로 맞물린다.
+  if (enemy.cls === 'elite' && state.rng.drop.next() < dropChance) {
     grantItem(state, 'chips', 1);
     state.pushLog(`정예 처치 — ${ITEM_NAME.chips} +1`);
   }

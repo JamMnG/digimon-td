@@ -17,6 +17,8 @@ import { jogress, validateJogressData } from './evolution/jogressTable.js';
 import * as eco from './economy/economyManager.js';
 import { createTutorial } from './tutorial/tutorial.js';
 import { summon, releasePending } from './core/summon.js';
+import { createVersus, VS } from './net/versus.js';
+import { randomSeed } from './core/rng.js';
 
 // 개발용 데이터 검증
 const dataErrors = [...validateMonsterData(), ...validateJogressData()];
@@ -37,6 +39,10 @@ const tutorial = createTutorial();
 // 진짜 저장된 판을 빈 판으로 덮어써 버린다 — 스테이지 목록에 있는 동안
 // 탭을 닫거나 앱을 전환하면 저장이 날아가던 원인이 바로 이것이었다.
 let runLive = false;
+
+// 대결은 판 하나가 통째로 승부라 중간 저장을 하지 않는다.
+// (이어하기로 되돌리면 같은 운을 두 번 쓰는 셈이 된다)
+const versus = createVersus();
 
 const HINT_DEFAULT = '소환(Q)으로 디지몬을 뽑고, 잔디 위 빈 칸을 클릭해 배치하세요.';
 
@@ -144,6 +150,9 @@ const ui = initUI(state, {
   },
 
   onRestart: () => {
+    // 대결이 끝난 뒤 '다시 도전'은 혼자 하는 판이다.
+    // 같은 시드로 재시작하면 이미 아는 운을 다시 쓰는 셈이라 방을 먼저 닫는다.
+    if (versus.active) { versus.leave(); state.seed = randomSeed(); }
     state.reset();
     state.speed = save.getSetting('speed', 1);
     runLive = true;
@@ -157,10 +166,11 @@ const ui = initUI(state, {
 
   // 스테이지 카드를 눌러 '새로' 시작하는 경로. UI가 이미 확인을 받았다.
   onSelectStage: (stageId) => {
+    if (versus.active) versus.leave();
     if (stageId === 'tutorial') { startTutorial(); return; }
     stopTutorial();
     save.clearRun();
-    state.loadStage(stageById(stageId));
+    state.loadStage(stageById(stageId), randomSeed());
     state.speed = save.getSetting('speed', 1);
     runLive = true;
     afterStageChange();
@@ -171,6 +181,7 @@ const ui = initUI(state, {
   onResume: () => {
     const run = save.loadRun();
     if (!run) return;
+    if (versus.active) versus.leave();
     stopTutorial();
     state.restore(run);
     runLive = true;
@@ -199,7 +210,42 @@ const ui = initUI(state, {
     ui.setHint('튜토리얼을 건너뛰었습니다. 스테이지 목록에서 언제든 다시 볼 수 있습니다.');
     ui.openStageSelect();
   },
+
+  // ── 대결 ──
+  vsState: () => versus.state,
+  onVsHost: (room, stageId, kind) => versus.host(room, stageId, kind),
+  onVsJoin: (room, kind) => versus.join(room, kind),
+  onVsBegin: () => startVersus(),
+  onVsLeave: () => versus.leave(),
 });
+
+// 로비 상태가 바뀔 때마다 스테이지 화면을 다시 그린다.
+// 참가자 쪽은 방장이 '대결 시작'을 누르는 순간 begin 신호로 같이 들어간다.
+versus.onChange((vs) => {
+  if (vs.phase === VS.PLAYING && ui.isMenuOpen()) enterVersusStage();
+  if (ui.isMenuOpen()) ui.drawVersus();
+  ui.invalidate();
+});
+
+/** 방장이 시작을 누름 — begin 이 양쪽 onChange 를 거쳐 enterVersusStage 로 이어진다 */
+function startVersus() {
+  if (versus.state.stageId) versus.begin();
+}
+
+function enterVersusStage() {
+  const vs = versus.state;
+  if (!vs.stageId) return;
+  stopTutorial();
+  runLive = false;              // 대결 판은 이어하기로 저장하지 않는다
+  save.clearRun();
+  state.loadStage(stageById(vs.stageId), vs.seed);
+  state.noSave = true;          // 웨이브 클리어 자동저장까지 막는다
+  state.speed = save.getSetting('speed', 1);
+  afterStageChange();
+  ui.closeStageSelect();
+  state.showBanner('대결 시작', `${state.stage.name} · 방 ${vs.room}`, 2.2);
+  ui.setHint(`대결 중 — 같은 운으로 진행합니다. 더 높은 웨이브까지 버티면 승리.`);
+}
 
 // ── 튜토리얼 ──
 function onTutorialStep() { ui.invalidate(); }
@@ -341,12 +387,20 @@ function tick(dt, now = performance.now()) {
   // 스테이지 목록이 덮고 있는 동안에는 게임 시간이 흐르지 않는다.
   // (예전에는 계속 흘러서, 메뉴를 보는 사이 패배하면 저장까지 지워졌다)
   if (!ui.isMenuOpen()) {
+    const wasPlaying = state.phase === PHASE.PREP || state.phase === PHASE.COMBAT;
     stage.update(state, dt);
     if (tutorial.active) {
       const before = tutorial.index;
       tutorial.update(state, onTutorialStep);
       if (!tutorial.active) finishTutorial();
       else if (tutorial.index !== before) syncTutorial();
+    }
+    if (versus.state.phase === VS.PLAYING) {
+      versus.update(state, dt);
+      // 내 판이 방금 끝났다 — 최종 웨이브를 보내고 상대 결과를 기다린다
+      if (wasPlaying && (state.phase === PHASE.WIN || state.phase === PHASE.LOSE)) {
+        versus.finish(state);
+      }
     }
   }
   drawFrame(ctx, state, hover);
@@ -367,4 +421,4 @@ if (save.isTutorialDone()) ui.openStageSelect();
 else startTutorial();
 
 // 디버그 핸들 (콘솔에서 밸런스·UI 확인용)
-window.DTD = { state, PHASE, stage, ui, tick, save, tutorial, startTutorial };
+window.DTD = { state, PHASE, stage, ui, tick, save, tutorial, startTutorial, versus };

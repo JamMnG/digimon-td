@@ -15,6 +15,9 @@
 
       <div id="resume-box"></div>
 
+      <h2 class="screen-h">친구와 대결</h2>
+      <div class="vs-box" id="vs-box"></div>
+
       <h2 class="screen-h">스테이지</h2>
       <div class="stage-grid" id="stage-grid"></div>
 
@@ -51,6 +54,21 @@
         <button class="gbtn go" id="btn-start">웨이브 시작</button>
       </div>
     </header>
+
+    <!-- ── 대결 상대 진행 상황 ── -->
+    <div class="vs-bar hidden" id="vs-bar">
+      <span class="vs-tag">대결</span>
+      <span class="vs-room" id="vs-room">—</span>
+      <div class="vs-side me">
+        <b>나</b>
+        <span id="vs-me">웨이브 1 · ♥20</span>
+      </div>
+      <div class="vs-gap" id="vs-gap">—</div>
+      <div class="vs-side opp">
+        <b id="vs-opp-name">상대</b>
+        <span id="vs-opp">연결 중…</span>
+      </div>
+    </div>
 
     <main class="layout">
       <section class="stage-wrap">

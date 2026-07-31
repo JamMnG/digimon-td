@@ -7,6 +7,8 @@ import { ENEMIES } from '../data/enemies.js';
 import { STAGES } from '../data/stages.js';
 import { PHASE } from '../core/gameState.js';
 import { stageRecord, unlockState, loadRun, storageWorks } from '../core/save.js';
+import { VS } from '../net/versus.js';
+import { randomRoomCode, normalizeRoomCode } from '../core/rng.js';
 import { BALANCE, TILE } from '../config/balance.js';
 import { effectiveStats } from '../combat/combatSystem.js';
 import { evolveOptions, evolveCost, sellValue } from '../evolution/evolutionTree.js';
@@ -47,6 +49,8 @@ export function initUI(state, handlers) {
     coach: $('coach'), coachStep: $('coach-step'), coachTitle: $('coach-title'),
     coachText: $('coach-text'), coachNext: $('coach-next'), coachSkip: $('coach-skip'),
     coachWait: $('coach-wait'),
+    vsBox: $('vs-box'), vsBar: $('vs-bar'), vsRoom: $('vs-room'), vsMe: $('vs-me'),
+    vsOpp: $('vs-opp'), vsOppName: $('vs-opp-name'), vsGap: $('vs-gap'),
   };
 
   el.icoChips.innerHTML = iconTag('item', 'chips', 16);
@@ -105,6 +109,7 @@ export function initUI(state, handlers) {
 
   function refresh(now) {
     drawHud();
+    refreshVersusBar();
     // 탭 전환은 여기서 하지 않는다. 배치할 때마다 넘어가면 연속 소환이 번거로워지므로
     // 필드에서 유닛을 '클릭'했을 때만 main 이 setTab('unit') 을 부른다.
     const s = sig();
@@ -267,6 +272,189 @@ export function initUI(state, handlers) {
     });
 
     el.progressLine.textContent = `클리어 ${cleared} / ${STAGES.length} 스테이지`;
+    drawVersus();
+  }
+
+  // ── 대결 로비 ──
+  // 방 코드가 곧 시드다. 같은 코드로 들어오면 소환·증강·드랍 운이 똑같아진다.
+  let vsForm = { code: '', stageId: null, kind: 'peer' };
+
+  function playableStages() {
+    return STAGES.filter((st) => st.id !== 'tutorial' && unlockState(st).unlocked);
+  }
+
+  function drawVersus() {
+    const vs = handlers.vsState();
+    const box = el.vsBox;
+    box.innerHTML = '';
+
+    const line = (cls, html) => {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.innerHTML = html;
+      return d;
+    };
+
+    if (vs.error) box.appendChild(line('vs-err', `⚠ ${vs.error}`));
+
+    // ── 대결 중이 아님: 방 만들기 / 참가 ──
+    if (vs.phase === VS.OFF) {
+      box.appendChild(line('vs-lead',
+        '같은 맵을 <b>같은 운</b>으로 각자 돌립니다. 소환·증강·드랍이 둘 다 똑같이 나오고, 더 높은 웨이브까지 버틴 쪽이 이깁니다.'));
+
+      const open = playableStages();
+      if (!vsForm.stageId || !open.some((st) => st.id === vsForm.stageId)) {
+        vsForm.stageId = open.length ? open[0].id : null;
+      }
+
+      const row1 = document.createElement('div');
+      row1.className = 'vs-row';
+
+      const stagePick = document.createElement('select');
+      stagePick.className = 'vs-input';
+      for (const st of open) {
+        const o = document.createElement('option');
+        o.value = st.id; o.textContent = `${st.name} (${st.waves}웨이브)`;
+        if (st.id === vsForm.stageId) o.selected = true;
+        stagePick.appendChild(o);
+      }
+      stagePick.addEventListener('change', () => { vsForm.stageId = stagePick.value; });
+
+      const kindPick = document.createElement('select');
+      kindPick.className = 'vs-input';
+      kindPick.innerHTML = `
+        <option value="peer">다른 기기 · 인터넷</option>
+        <option value="local">같은 컴퓨터 · 창 2개</option>`;
+      kindPick.value = vsForm.kind;
+      kindPick.addEventListener('change', () => { vsForm.kind = kindPick.value; });
+
+      const mk = document.createElement('button');
+      mk.className = 'gbtn gold';
+      mk.textContent = '방 만들기';
+      mk.addEventListener('click', () => {
+        handlers.onVsHost(randomRoomCode(), vsForm.stageId, vsForm.kind);
+      });
+
+      row1.append(stagePick, kindPick, mk);
+      box.appendChild(row1);
+
+      const row2 = document.createElement('div');
+      row2.className = 'vs-row';
+      const code = document.createElement('input');
+      code.className = 'vs-input code';
+      code.placeholder = '친구가 준 방 코드';
+      code.maxLength = 7;
+      code.value = vsForm.code;
+      code.addEventListener('input', () => {
+        vsForm.code = normalizeRoomCode(code.value);
+        code.value = vsForm.code;
+        jn.disabled = vsForm.code.length < 6;
+      });
+
+      const jn = document.createElement('button');
+      jn.className = 'gbtn';
+      jn.textContent = '참가';
+      jn.disabled = vsForm.code.length < 6;
+      jn.addEventListener('click', () => handlers.onVsJoin(vsForm.code, vsForm.kind));
+      code.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !jn.disabled) jn.click(); });
+
+      row2.append(code, jn);
+      box.appendChild(row2);
+      box.appendChild(line('fine',
+        vsForm.kind === 'local'
+          ? '같은 브라우저에서 창(탭)을 하나 더 열고 같은 코드로 참가하면 됩니다.'
+          : '방 코드만 알려주면 됩니다. 연결은 두 사람 사이에서 직접 맺어집니다.'));
+      return;
+    }
+
+    // ── 방을 만들었거나 참가 중 ──
+    const st = STAGES.find((x) => x.id === vs.stageId);
+    const head = document.createElement('div');
+    head.className = 'vs-room-head';
+
+    if (vs.isHost) {
+      head.innerHTML = `
+        <div>
+          <div class="rz-s">친구에게 이 코드를 알려주세요</div>
+          <div class="vs-code">${vs.room}</div>
+        </div>`;
+      const copy = document.createElement('button');
+      copy.className = 'gbtn tiny ghost';
+      copy.textContent = '복사';
+      copy.addEventListener('click', () => {
+        navigator.clipboard?.writeText(vs.room);
+        copy.textContent = '복사됨!';
+        setTimeout(() => { copy.textContent = '복사'; }, 1200);
+      });
+      head.appendChild(copy);
+    } else {
+      head.innerHTML = `
+        <div>
+          <div class="rz-s">참가한 방</div>
+          <div class="vs-code">${vs.room}</div>
+        </div>`;
+    }
+    box.appendChild(head);
+
+    if (vs.phase === VS.WAITING) {
+      box.appendChild(line('vs-wait', vs.isHost
+        ? '상대가 들어오기를 기다리는 중…'
+        : '방에 연결하는 중…'));
+    } else if (vs.phase === VS.READY) {
+      box.appendChild(line('vs-ready',
+        `상대 접속 완료 — <b>${st ? st.name : '맵 확인 중'}</b> ${st ? `${st.waves}웨이브` : ''}`));
+    } else if (vs.phase === VS.PLAYING) {
+      box.appendChild(line('vs-wait', '대결 진행 중 — 게임 화면으로 돌아가세요.'));
+    } else if (vs.phase === VS.FINISHED) {
+      const v = vs.verdict;
+      box.appendChild(line(v === 'lose' ? 'vs-wait' : 'vs-ready',
+        `대결 종료 — <b>${v === 'win' ? '승리' : v === 'lose' ? '패배' : '무승부'}</b>`
+        + ` (나 ${vs.myResult ? vs.myResult.wave : '?'}웨이브 · 상대 ${vs.oppResult ? vs.oppResult.wave : '?'}웨이브)`));
+    }
+
+    const foot = document.createElement('div');
+    foot.className = 'vs-row';
+    if (vs.phase === VS.READY && vs.isHost) {
+      const go = document.createElement('button');
+      go.className = 'gbtn gold';
+      go.textContent = '대결 시작';
+      go.addEventListener('click', () => handlers.onVsBegin());
+      foot.appendChild(go);
+    } else if (vs.phase === VS.READY) {
+      foot.appendChild(line('vs-wait', '방장이 시작하기를 기다리는 중…'));
+    }
+    const out = document.createElement('button');
+    out.className = 'gbtn tiny ghost';
+    out.textContent = vs.phase === VS.FINISHED ? '새 대결 준비' : '나가기';
+    out.addEventListener('click', () => handlers.onVsLeave());
+    foot.appendChild(out);
+    box.appendChild(foot);
+  }
+
+  /** 게임 화면 상단의 대결 바 — 상대가 지금 어디까지 갔는지 */
+  function refreshVersusBar() {
+    const vs = handlers.vsState();
+    const on = vs.phase === VS.PLAYING || vs.phase === VS.FINISHED;
+    el.vsBar.classList.toggle('hidden', !on);
+    if (!on) return;
+
+    el.vsRoom.textContent = vs.room;
+    el.vsMe.textContent = `웨이브 ${state.wave} · ♥${state.life}`;
+
+    const o = vs.opponent;
+    if (!o) {
+      el.vsOpp.textContent = vs.error ? '연결 끊김' : '연결 중…';
+      el.vsGap.textContent = '—';
+      el.vsBar.classList.remove('ahead', 'behind');
+      return;
+    }
+    const done = vs.oppResult ? (vs.oppResult.won ? ' · 클리어' : ' · 종료') : '';
+    el.vsOpp.textContent = `웨이브 ${o.wave} · ♥${o.life}${done}`;
+
+    const d = state.wave - o.wave;
+    el.vsGap.textContent = d === 0 ? '동률' : (d > 0 ? `+${d} 앞섬` : `${d} 뒤짐`);
+    el.vsBar.classList.toggle('ahead', d > 0);
+    el.vsBar.classList.toggle('behind', d < 0);
   }
 
   /** 저장된 판이 있는데 새 판을 시작하려 할 때 — 지우기 전에 반드시 거친다 */
@@ -729,6 +917,29 @@ export function initUI(state, handlers) {
     el.overlay.classList.remove('hidden');
     const win = state.phase === PHASE.WIN;
     const rec = stageRecord(state.stage.id);
+    const vs = handlers.vsState();
+    const inVs = vs.phase === VS.PLAYING || vs.phase === VS.FINISHED;
+
+    // 대결 중이면 내 클리어 여부보다 "상대보다 잘했나"가 결론이다
+    if (inVs) {
+      const mine = win ? state.totalWaves : state.wave;
+      const done = vs.verdict != null;
+      el.ovRibbon.textContent = `대결 · ${vs.room}`;
+      el.ovTitle.textContent = !done ? '내 판 종료 — 상대를 기다리는 중'
+        : vs.verdict === 'win' ? '승리!'
+        : vs.verdict === 'lose' ? '패배' : '무승부';
+      el.ovStats.innerHTML = `
+        <div><span>내 도달 웨이브</span><b>${mine}</b></div>
+        <div><span>상대 도달 웨이브</span><b>${vs.oppResult ? vs.oppResult.wave : '진행 중'}</b></div>
+        <div><span>남은 라이프</span><b>${state.life}</b></div>
+        <div><span>처치</span><b>${state.kills}</b></div>`;
+      el.ovBody.textContent = [
+        done ? '' : '상대가 아직 진행 중입니다. 끝나면 승패가 표시됩니다.',
+        state.newBest ? '★ 최고 기록 갱신!' : '',
+        `증강: ${state.augments.map((id) => augmentById(id).name).join(', ') || '없음'}`,
+      ].filter(Boolean).join('\n');
+      return;
+    }
 
     el.ovRibbon.textContent = state.stage.name;
     el.ovTitle.textContent = win ? '스테이지 클리어!'
@@ -782,7 +993,7 @@ export function initUI(state, handlers) {
   const click = (sel) => { const n = document.querySelector(sel); if (n && !n.disabled) n.click(); };
 
   return { refresh, setHint, invalidate, setTab, openStageSelect, closeStageSelect,
-           drawStageSelect, showCoach, click, isMenuOpen };
+           drawStageSelect, drawVersus, showCoach, click, isMenuOpen };
 }
 
 export { ENEMIES, TILE };

@@ -132,19 +132,14 @@ export function applyInstant(state, augment) {
  * 3개 제안. 이미 가진 증강은 빼고, 등급 가중치로 뽑는다.
  * 같은 제안 안에서 중복되지 않게 하나씩 소거하며 뽑는다.
  */
-export function rollOffer(ownedIds, count = 3) {
+export function rollOffer(ownedIds, rng, count = 3) {
   const pool = AUGMENTS.filter((a) => !ownedIds.includes(a.id));
   const picked = [];
   const rest = [...pool];
   while (picked.length < count && rest.length) {
-    const total = rest.reduce((s, a) => s + TIER[a.tier].weight, 0);
-    let r = Math.random() * total;
-    let idx = 0;
-    for (let i = 0; i < rest.length; i++) {
-      r -= TIER[rest[i].tier].weight;
-      if (r <= 0) { idx = i; break; }
-    }
-    picked.push(rest.splice(idx, 1)[0]);
+    const a = rng.weighted(rest, (x) => TIER[x.tier].weight);
+    rest.splice(rest.indexOf(a), 1);
+    picked.push(a);
   }
   return picked;
 }

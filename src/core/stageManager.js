@@ -206,6 +206,9 @@ export function maybeOfferAugment(state) {
  *  승패 확정 후 → 저장하지 않는다 (판이 끝나면 스냅샷은 지워져야 한다).
  */
 export function autosave(state) {
+  // 대결 판은 저장하지 않는다. 이어하기가 되면 이미 아는 운을 다시 쓰는 셈이라
+  // 대결의 전제(둘 다 같은 운을 한 번씩)가 무너진다.
+  if (state.noSave) return false;
   if (state.phase === PHASE.PREP) return saveRun(state.serialize());
   if (state.phase === PHASE.COMBAT && state.waveStart) return saveRun(state.waveStart);
   return false;
