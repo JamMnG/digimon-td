@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// digimonArt.js — 디지몬 유닛 도트 스프라이트 조립기
+// unitArt.js — 포켓몬 유닛 도트 스프라이트 조립기
 //
-// 32종을 하나씩 찍는 대신 부위 조합으로 만든다.
+// 전용 도트(monsterSprites.js)가 없는 id 만 부위 조합으로 만든다.
 //   build  체형   rookie | biped | quad | humanoid | armored | mech | wraith
 //   head   머리   snout | round | helm | skull | hood | visor
 //   horn   뿔     0~3 (+ hornStyle: back | straight | curve)
@@ -86,7 +86,7 @@ export function spriteFor(def, attack = false) {
 // "키웠다"는 감각이 안 오고, 필드에서 무엇이 주력인지도 한눈에 안 읽힌다.
 const TIER_SCALE = { 1: 0.82, 2: 0.92, 3: 1.0, 4: 1.08 };
 
-export function drawDigimon(ctx, def, cx, cy, s, aim = 0, attacking = false) {
+export function drawUnit(ctx, def, cx, cy, s, aim = 0, attacking = false) {
   const cv = spriteFor(def, attacking);
   // 타일(44px)을 넘지 않게 — 더 키우면 세로로 붙은 유닛끼리 겹친다
   const dw = s * 1.24 * (TIER_SCALE[def.tier] ?? 1);

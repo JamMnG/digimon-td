@@ -9,9 +9,20 @@
 // ─────────────────────────────────────────────────────────────
 import { STAGES, stageById } from '../data/stages.js';
 
-const META_KEY = 'digimontd_meta_v1';
-const RUN_KEY = 'digimontd_run_v1';
+const META_KEY = 'pokemontd_meta_v1';
+const RUN_KEY = 'pokemontd_run_v1';
 const LEGACY_BEST = 'digimontd_best_wave';
+
+// 포켓몬 테마로 바꾸기 전의 저장 키. 이미 진행한 사람의 기록을 버리지 않으려고
+// 첫 실행 때 한 번만 새 키로 옮긴다 (옮긴 뒤 옛 키는 지운다).
+const OLD_KEYS = { 'digimontd_meta_v1': 'pokemontd_meta_v1', 'digimontd_run_v1': 'pokemontd_run_v1' };
+try {
+  for (const [from, to] of Object.entries(OLD_KEYS)) {
+    const v = localStorage.getItem(from);
+    if (v !== null && localStorage.getItem(to) === null) localStorage.setItem(to, v);
+    if (v !== null) localStorage.removeItem(from);
+  }
+} catch { /* 저장이 막힌 브라우저 — 그냥 넘어간다 */ }
 
 const emptyMeta = () => ({ v: 1, stages: {}, settings: { speed: 1 } });
 

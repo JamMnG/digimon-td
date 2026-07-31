@@ -17,7 +17,7 @@ import { readyPartners } from '../evolution/megaTable.js';
 import { adjacentLinks } from '../combat/adjacency.js';
 import { THEMES, themeOf } from '../data/themes.js';
 import { shade, mix, hexOf, inkOf, volume, roundRect, outlinedText, setInk } from './shading.js';
-import { drawDigimon } from './digimonArt.js';
+import { drawUnit } from './unitArt.js';
 import { drawPropModel } from './itemArt.js';
 import { drawInstructor } from './instructor.js';
 import { drawShot, drawCast } from './attackArt.js';
@@ -737,7 +737,7 @@ function drawTowers(ctx, state, now) {
     }
 
     // ── 몬스터별 실루엣 (반동 중에는 공격 포즈 프레임) ──
-    drawDigimon(ctx, d, cx, cy, s * (1 + kick * 0.06), t.aim, t.recoil > 0.3);
+    drawUnit(ctx, d, cx, cy, s * (1 + kick * 0.06), t.aim, t.recoil > 0.3);
 
     // 발사 반동은 몸 전체를 뒤로 밀어 표현했으므로 여기선 속성 젬만 얹는다
     ctx.beginPath();

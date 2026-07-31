@@ -271,31 +271,37 @@ export const SPRITES = {
 
   // ══════════ 미뇽 라인 ══════════
   dratini(S, C) {
-    // 뱀 — 아래는 굵고 위로 갈수록 가늘어진다
-    blob(S, 3, 18, 13, 4, C.base);
-    blob(S, 6, 14, 8, 5, C.base);
-    blob(S, 8, 9, 6, 6, C.base);
-    S.rect(9, 16, 5, 4, CREAM); S.rect(6, 20, 9, 1, CREAM);
-    dome(S, 7, 3, 8, 7, C.base, 2);
-    S.taper(2, 3, 5, 5, WHITE, 1);               // 머리 옆 흰 지느러미
-    S.taper(15, 3, 5, 5, WHITE, 1);
-    eyes(S, 5, { lx: 8, rx: 12 });
-    S.rect(10, 8, 3, 1, shade(C.base, -0.4));
+    // 뱀 — 마디를 셋으로 나눠 굽이가 보이게
+    blob(S, 2, 18, 15, 4, C.dark);
+    blob(S, 5, 14, 10, 5, C.base);
+    blob(S, 8, 9, 7, 6, C.light);
+    S.rect(3, 20, 13, 1, shade(C.dark, -0.45));   // 바닥 그늘
+    S.rect(6, 16, 8, 3, CREAM); S.rect(9, 11, 5, 4, CREAM);
+    S.rect(5, 14, 10, 1, shade(C.base, -0.4));    // 마디 경계
+    S.rect(8, 9, 7, 1, shade(C.light, 0.4));
+    dome(S, 6, 2, 10, 8, C.light, 2);
+    S.taper(1, 3, 6, 5, WHITE, 1);                // 머리 옆 흰 지느러미 — 크게
+    S.taper(15, 3, 6, 5, WHITE, 1);
+    S.rect(2, 6, 4, 1, '#a8c8e0'); S.rect(16, 6, 4, 1, '#a8c8e0');
+    eyes(S, 5, { lx: 7, rx: 12, w: 3, h: 3, pupil: '#1a2a3a' });
+    S.rect(9, 9, 4, 1, shade(C.dark, -0.3));
   },
 
   dragonair(S, C) {
-    S.taper(1, 10, 5, 5, WHITE, 1);              // 흰 날개 지느러미
-    S.taper(16, 10, 5, 5, WHITE, 1);
-    blob(S, 3, 18, 13, 4, C.base);
-    blob(S, 6, 14, 8, 5, C.base);
-    blob(S, 8, 9, 6, 6, C.base);
-    S.rect(9, 16, 5, 4, CREAM); S.rect(6, 20, 9, 1, CREAM);
-    S.rect(9, 10, 4, 2, '#4a90d9');              // 목의 파란 구슬
-    S.rect(10, 10, 2, 1, '#b8e8ff');
-    S.rect(9, 19, 3, 2, '#4a90d9');              // 꼬리 구슬
-    dome(S, 7, 3, 8, 7, C.base, 2);
-    S.taper(9, 0, 4, 4, WHITE);                  // 이마 뿔
-    eyes(S, 5, { lx: 8, rx: 12 });
+    S.taper(0, 11, 6, 5, WHITE, 1);               // 흰 날개 지느러미
+    S.taper(16, 11, 6, 5, WHITE, 1);
+    blob(S, 2, 18, 15, 4, C.dark);
+    blob(S, 5, 14, 10, 5, C.base);
+    blob(S, 8, 9, 7, 6, C.light);
+    S.rect(3, 20, 13, 1, shade(C.dark, -0.45));
+    S.rect(6, 16, 8, 3, CREAM); S.rect(9, 11, 5, 4, CREAM);
+    S.rect(5, 14, 10, 1, shade(C.base, -0.4));
+    blob(S, 8, 9, 6, 3, '#3f7fd0', 1);            // 목의 파란 구슬
+    S.rect(9, 9, 4, 1, '#b8e8ff');
+    blob(S, 8, 18, 5, 3, '#3f7fd0', 1);           // 꼬리 구슬
+    dome(S, 6, 2, 10, 8, C.light, 2);
+    S.taper(9, 0, 4, 4, WHITE);                   // 이마 뿔
+    eyes(S, 5, { lx: 7, rx: 12, w: 3, h: 3, pupil: '#1a2a3a' });
   },
 
   dragonite(S, C) {
@@ -443,38 +449,41 @@ export const SPRITES = {
 
   // ══════════ 발챙이 라인 ══════════
   poliwag(S, C) {
-    S.shaded(15, 17, 5, 3, C.light);             // 얇은 꼬리
-    S.taper(18, 14, 4, 4, C.light, 1);
-    blob(S, 3, 4, 16, 16, C.base, 3);            // 거의 완전한 구
-    // 배의 검은 소용돌이 — 발챙이 라인의 전부
-    blob(S, 6, 9, 10, 10, WHITE, 2);
-    S.rect(8, 11, 6, 1, INKY); S.rect(8, 11, 1, 5, INKY);
-    S.rect(8, 15, 5, 1, INKY); S.rect(12, 12, 1, 4, INKY);
-    S.rect(10, 12, 3, 1, INKY);
-    eyes(S, 6, { lx: 5, rx: 14, w: 3, h: 3 });
+    S.shaded(16, 18, 5, 3, C.light);              // 올챙이 꼬리
+    S.taper(19, 15, 3, 4, C.light, 1);
+    blob(S, 4, 5, 15, 15, C.base, 4);             // 완전한 구 — 팔다리 없음
+    blob(S, 6, 9, 11, 11, WHITE, 3);              // 배의 흰 판
+    // 검은 소용돌이
+    S.rect(8, 11, 7, 1, INKY); S.rect(8, 11, 1, 6, INKY);
+    S.rect(8, 16, 6, 1, INKY); S.rect(13, 12, 1, 5, INKY);
+    S.rect(10, 13, 4, 1, INKY); S.rect(10, 13, 1, 2, INKY);
+    eyes(S, 6, { lx: 4, rx: 15, w: 3, h: 3 });
   },
 
   poliwhirl(S, C) {
-    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
-    S.shaded(2, 12, 4, 3, C.base); S.shaded(16, 12, 4, 3, C.base);
-    S.shaded(1, 15, 4, 3, WHITE); S.shaded(17, 15, 4, 3, WHITE);
+    // 팔다리가 생긴다 — 흰 장갑이 실루엣의 핵심
+    blob(S, 6, 19, 4, 3, C.base); blob(S, 12, 19, 4, 3, C.base);
+    S.shaded(2, 11, 4, 4, C.base); S.shaded(16, 11, 4, 4, C.base);
+    blob(S, 0, 14, 5, 5, WHITE, 1); blob(S, 17, 14, 5, 5, WHITE, 1);
     blob(S, 4, 3, 14, 16, C.base, 3);
-    blob(S, 7, 7, 8, 9, WHITE, 2);
-    S.rect(8, 9, 6, 1, INKY); S.rect(8, 9, 1, 4, INKY);
-    S.rect(8, 12, 5, 1, INKY); S.rect(12, 10, 1, 3, INKY);
-    eyes(S, 4, { lx: 5, rx: 14, w: 3, h: 3 });
+    blob(S, 6, 7, 10, 10, WHITE, 2);
+    S.rect(8, 9, 6, 1, INKY); S.rect(8, 9, 1, 5, INKY);
+    S.rect(8, 13, 5, 1, INKY); S.rect(12, 10, 1, 4, INKY);
+    eyes(S, 4, { lx: 4, rx: 15, w: 3, h: 3 });
   },
 
   poliwrath(S, C) {
-    S.shaded(1, 10, 5, 5, C.base); S.shaded(16, 10, 5, 5, C.base);
-    S.shaded(0, 14, 5, 4, WHITE); S.shaded(17, 14, 5, 4, WHITE);
-    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
-    blob(S, 4, 2, 14, 17, C.base, 3);            // 근육질 통짜 몸
-    blob(S, 7, 8, 8, 9, WHITE, 2);
-    S.rect(8, 10, 6, 1, INKY); S.rect(8, 10, 1, 5, INKY);
-    S.rect(8, 14, 5, 1, INKY); S.rect(12, 11, 1, 4, INKY);
-    S.rect(10, 11, 3, 1, INKY);
-    eyes(S, 4, { lx: 5, rx: 14, w: 3, h: 2 });
+    // 근육질 — 어깨가 넓고 팔이 굵다
+    S.shaded(0, 9, 6, 6, C.base); S.shaded(16, 9, 6, 6, C.base);
+    blob(S, 0, 14, 6, 5, WHITE, 1); blob(S, 16, 14, 6, 5, WHITE, 1);
+    blob(S, 5, 19, 5, 3, C.dark); blob(S, 12, 19, 5, 3, C.dark);
+    blob(S, 3, 2, 16, 18, C.base, 4);
+    S.rect(4, 8, 14, 1, shade(C.base, -0.4));     // 어깨선
+    blob(S, 6, 10, 10, 9, WHITE, 2);
+    S.rect(8, 12, 6, 1, INKY); S.rect(8, 12, 1, 5, INKY);
+    S.rect(8, 16, 5, 1, INKY); S.rect(12, 13, 1, 4, INKY);
+    S.rect(10, 14, 3, 1, INKY);
+    eyes(S, 4, { lx: 4, rx: 15, w: 3, h: 2 });
   },
 
   // ══════════ 뚜꾸리 라인 ══════════
@@ -588,14 +597,16 @@ export const SPRITES = {
 
   // ══════════ 랄토스 라인 ══════════
   ralts(S, C) {
-    S.taper(6, 13, 10, 9, C.base);               // 아래로 퍼진 몸
-    S.shaded(4, 14, 3, 4, C.base); S.shaded(15, 14, 3, 4, C.base);
-    // 얼굴을 덮은 초록 보울 머리 — 랄토스 라인의 표식
-    dome(S, 4, 3, 14, 9, GREEN_H, 3);
-    S.rect(5, 11, 12, 1, shade(GREEN_H, -0.4));
-    S.taper(1, 4, 5, 5, RED, 1);                 // 머리 옆 빨간 뿔
-    S.taper(16, 4, 5, 5, RED, 1);
-    S.rect(9, 12, 4, 1, INKY);
+    S.taper(4, 12, 14, 10, C.base);               // 아래로 넓게 퍼진 흰 몸
+    S.rect(3, 21, 16, 1, shade(C.base, -0.25));
+    S.shaded(3, 13, 3, 4, C.base); S.shaded(16, 13, 3, 4, C.base);
+    // 얼굴을 덮은 초록 보울 머리
+    dome(S, 4, 2, 14, 10, GREEN_H, 3);
+    S.rect(5, 11, 12, 1, shade(GREEN_H, -0.45));
+    S.taper(0, 3, 6, 6, RED, 1);                  // 머리 옆 빨간 뿔 — 크게
+    S.taper(16, 3, 6, 6, RED, 1);
+    S.rect(1, 5, 4, 1, '#ff8a7a'); S.rect(17, 5, 4, 1, '#ff8a7a');
+    S.rect(8, 12, 6, 1, INKY);                    // 살짝 보이는 입
   },
 
   kirlia(S, C) {
@@ -635,50 +646,62 @@ export const SPRITES = {
 
   // ══════════ 토게피 라인 ══════════
   togepi(S, C) {
-    // 알 껍질을 뒤집어쓴 몸 — 아래가 지그재그로 깨져 있다
-    dome(S, 4, 4, 14, 15, C.base, 3);
-    for (let x = 5; x < 17; x += 2) S.set(x, 18, null);
-    for (const x of [5, 8, 11, 14]) S.taper(x, 1, 4, 4, C.base);  // 머리 뾰족
-    S.taper(6, 12, 4, 3, RED); S.taper(12, 14, 4, 3, BLUE_M);     // 빨강·파랑 삼각
-    S.taper(9, 16, 3, 3, RED);
-    eyes(S, 7, { lx: 6, rx: 13, w: 3, h: 3 });
-    S.rect(9, 11, 4, 1, INKY);
-    S.shaded(2, 18, 4, 3, CREAM); S.shaded(16, 18, 4, 3, CREAM);
+    // 알 껍질에 들어앉은 아기 — 아래가 지그재그로 깨진 알
+    blob(S, 4, 9, 14, 12, C.base, 2);
+    for (let x = 5; x < 17; x += 2) { S.set(x, 20, null); S.set(x, 19, shade(C.base, -0.35)); }
+    S.rect(5, 12, 12, 1, shade(C.base, -0.3));    // 껍질 테두리
+    // 빨강·파랑 삼각 무늬 — 껍질 아래쪽에만
+    S.taper(5, 14, 5, 4, RED); S.taper(13, 15, 5, 4, BLUE_M);
+    S.taper(9, 16, 4, 4, RED);
+    dome(S, 5, 3, 12, 8, CREAM, 2);               // 머리는 살구색으로 껍질과 구분
+    for (const x of [5, 9, 13]) S.taper(x, 0, 4, 4, CREAM);   // 머리 뾰족
+    eyes(S, 6, { lx: 6, rx: 13, w: 3, h: 3, pupil: '#3a2a1a' });
+    S.rect(9, 10, 4, 1, '#8a6a4a');
+    S.set(5, 8, PINK); S.set(16, 8, PINK);        // 볼 홍조
   },
 
   togetic(S, C) {
-    S.taper(0, 7, 6, 6, WHITE, 1);               // 작은 날개
-    S.taper(16, 7, 6, 6, WHITE, 1);
-    blob(S, 5, 7, 12, 12, C.base, 2);
-    for (const x of [6, 9, 12]) S.taper(x, 3, 4, 4, C.base);
-    S.taper(6, 12, 4, 3, RED); S.taper(12, 14, 4, 3, BLUE_M);
-    eyes(S, 8, { lx: 7, rx: 12, w: 3, h: 3 });
-    S.rect(9, 12, 4, 1, INKY);
-    S.shaded(6, 18, 4, 3, CREAM); S.shaded(12, 18, 4, 3, CREAM);
+    // 두 발로 서고 작은 날개 — 알에서 나온 형태
+    S.taper(0, 6, 6, 7, WHITE, 1);
+    S.taper(16, 6, 6, 7, WHITE, 1);
+    S.rect(1, 12, 4, 1, '#c8d8e8'); S.rect(17, 12, 4, 1, '#c8d8e8');
+    blob(S, 6, 18, 4, 4, '#e8b85a'); blob(S, 12, 18, 4, 4, '#e8b85a');
+    blob(S, 6, 10, 10, 9, C.base, 2);             // 몸통
+    S.taper(7, 12, 4, 4, RED); S.taper(12, 14, 4, 4, BLUE_M);
+    neck(S, 7, 9, 8, shade(C.base, -0.3));
+    dome(S, 6, 3, 10, 7, CREAM, 2);
+    for (const x of [6, 10, 13]) S.taper(x, 0, 4, 4, CREAM);
+    eyes(S, 5, { lx: 7, rx: 12, w: 3, h: 3, pupil: '#3a2a1a' });
+    S.rect(9, 8, 4, 1, '#8a6a4a');
   },
 
   togekiss(S, C) {
-    // 몸통 대부분이 날개 — 비행체 실루엣
-    S.taper(0, 6, 8, 7, WHITE, 1);
-    S.taper(14, 6, 8, 7, WHITE, 1);
-    blob(S, 6, 5, 10, 14, C.base, 2);
-    for (const x of [7, 11]) S.taper(x, 1, 4, 4, C.base);
-    S.taper(6, 11, 4, 3, RED); S.taper(12, 13, 4, 3, BLUE_M);
-    eyes(S, 7, { lx: 7, rx: 12, w: 3, h: 3 });
-    S.rect(9, 11, 4, 1, INKY);
+    // 다리가 없고 몸 전체가 비행체 — 가로로 넓은 실루엣
+    S.taper(0, 8, 8, 8, WHITE, 1);
+    S.taper(14, 8, 8, 8, WHITE, 1);
+    S.rect(1, 15, 6, 1, '#c8d8e8'); S.rect(15, 15, 6, 1, '#c8d8e8');
+    blob(S, 5, 8, 12, 11, C.base, 3);
+    S.taper(6, 11, 5, 4, RED); S.taper(12, 13, 5, 4, BLUE_M);
+    dome(S, 5, 1, 12, 9, CREAM, 3);               // 큰 머리
+    S.taper(5, 0, 5, 3, CREAM); S.taper(12, 0, 5, 3, CREAM);
+    eyes(S, 4, { lx: 6, rx: 13, w: 3, h: 3, pupil: '#3a2a1a' });
+    S.rect(9, 7, 4, 1, '#8a6a4a');
+    S.set(5, 6, PINK); S.set(16, 6, PINK);
   },
 
   // ══════════ 고오스 라인 ══════════
   gastly(S, C) {
-    // 보라 가스가 검은 얼굴 구체를 감싼다
-    const gas = shade(C.base, 0.2);
-    S.taper(0, 3, 22, 4, gas, 1);
-    S.rect(0, 7, 22, 3, gas);
-    S.taper(0, 10, 22, 5, shade(gas, -0.25), -1);
-    for (let x = 1; x < 21; x += 3) S.set(x, 16, shade(gas, -0.4));
-    blob(S, 6, 6, 10, 9, '#241c30', 2);          // 검은 얼굴
-    eyes(S, 8, { lx: 7, rx: 12, w: 3, h: 3 });
-    S.rect(8, 13, 6, 1, '#d05a7a');              // 혀
+    // 보라 가스가 검은 얼굴 구체를 감싼다 — 가스는 옅게, 얼굴은 진하게
+    const gas = shade(C.base, 0.28);
+    S.taper(0, 2, 22, 4, gas, 1);
+    S.rect(0, 6, 22, 3, gas);
+    S.taper(0, 9, 22, 5, shade(gas, -0.3), -1);
+    for (let x = 2; x < 20; x += 4) { S.set(x, 15, shade(gas, -0.45)); S.set(x + 2, 17, shade(gas, -0.5)); }
+    blob(S, 4, 5, 14, 12, '#1e1830', 3);          // 검은 얼굴 — 크게
+    S.rect(6, 5, 10, 1, '#3a3050');
+    eyes(S, 8, { lx: 5, rx: 13, w: 4, h: 4, pupil: '#2a1a30' });
+    S.rect(8, 14, 6, 2, '#d05a7a');               // 혀
+    S.rect(9, 16, 4, 1, '#a03a5a');
   },
 
   haunter(S, C) {
@@ -806,13 +829,15 @@ export const SPRITES = {
 
   // ══════════ 메탕 라인 ══════════
   beldum(S, C) {
-    blob(S, 4, 5, 14, 12, C.base, 3);            // 금속 구체
-    S.rect(6, 5, 10, 1, shade(C.base, 0.48));
-    S.taper(8, 17, 6, 6, C.dark);                // 아래로 뻗은 갈고리
-    S.shaded(1, 8, 4, 4, C.dark); S.shaded(17, 8, 4, 4, C.dark);
-    blob(S, 7, 9, 8, 5, RED);                    // 빨간 외눈
-    S.rect(8, 10, 6, 2, '#ff9a8a');
-    S.rect(8, 9, 6, 1, REDD);
+    blob(S, 3, 4, 16, 13, C.base, 4);             // 금속 구체 — 크게
+    S.rect(6, 4, 10, 1, shade(C.base, 0.55));
+    S.taper(7, 17, 8, 6, C.dark);                 // 아래로 뻗은 갈고리
+    S.taper(9, 21, 4, 3, shade(C.dark, -0.3));
+    S.shaded(0, 7, 4, 5, C.dark); S.shaded(18, 7, 4, 5, C.dark);   // 옆 돌기
+    S.taper(0, 12, 3, 4, C.deep); S.taper(19, 12, 3, 4, C.deep);
+    blob(S, 6, 8, 10, 6, RED, 1);                 // 빨간 외눈 — 크게
+    S.rect(7, 10, 8, 2, '#ff9a8a');
+    S.rect(7, 9, 8, 1, REDD);
   },
 
   metang(S, C) {
