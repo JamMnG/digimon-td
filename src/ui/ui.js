@@ -46,6 +46,7 @@ export function initUI(state, handlers) {
     ownedAug: $('owned-aug'),
     props: $('props'), rentChip: $('chip-rent'), adjBox: $('adj-rules'),
     dps: $('chip-dps'), dpsPeak: $('chip-dps-peak'),
+    fbSynergy: $('fb-synergy'), fbLog: $('fb-log'),
     summonBox: $('summon-box'), summonOdds: $('summon-odds'),
     icoChips: $('ico-chips'), icoDisks: $('ico-disks'), icoCores: $('ico-cores'),
     coach: $('coach'), coachStep: $('coach-step'), coachTitle: $('coach-title'),
@@ -120,6 +121,7 @@ export function initUI(state, handlers) {
       if (tab === 'build') { drawPreview(); drawSummon(); drawProps(); drawExchange(); }
       if (tab === 'unit') drawSelected();
       if (tab === 'info') { drawSynergy(); drawLog(); drawOwnedAugments(); drawAdjRules(); }
+      drawFieldBar();
       drawAugmentOffer();
       drawOverlay();
     }
@@ -143,28 +145,81 @@ export function initUI(state, handlers) {
     const live = Math.round(state.dps);
     el.dps.textContent = state.phase === PHASE.COMBAT ? live.toLocaleString() : '—';
     el.dpsPeak.textContent = state.peakDps > 0 ? ` 최고 ${Math.round(state.peakDps).toLocaleString()}` : '';
-    el.dps.parentElement.classList.toggle('live', state.phase === PHASE.COMBAT && live > 0);
+    // .mi → .metabar.dps
+    el.dps.closest('.metabar').classList.toggle('live', state.phase === PHASE.COMBAT && live > 0);
 
     const inCombat = state.phase === PHASE.COMBAT;
     const due = rentDue(state);
     const nx = nextRent(state);
 
-    el.rentChip.textContent = nx ? `W${nx.wave} · ◈${nx.amount}` : '없음';
-    el.rentChip.parentElement.classList.toggle('danger', due > 0 && state.bits < due);
-    el.rentChip.parentElement.classList.toggle('warn', due > 0 && state.bits >= due);
+    // 라이프가 30% 아래로 떨어지면 눈에 띄게 알린다
+    el.life.closest('.vital').classList.toggle('hurt', state.life > 0 && state.life <= state.maxLife * 0.3);
+
+    el.rentChip.textContent = nx ? `W${nx.wave}·◈${nx.amount}` : '없음';
+    const rentBar = el.rentChip.closest('.metabar');
+    rentBar.classList.toggle('danger', due > 0 && state.bits < due);
+    rentBar.classList.toggle('warn', due > 0 && state.bits >= due);
 
     if (inCombat) {
+      // 화면에서 가장 큰 버튼이 전투 내내 회색으로 죽어 있으면 화면이 멈춘 것처럼 보인다.
+      // 남은 적 비율을 버튼 배경에 채워 진행 상황 자체를 보여준다.
+      const left = state.enemies.length + state.spawnQueue.length;
+      const total = Math.max(left, state.waveTotal || left);
+      state.waveTotal = total;
+      const done = total > 0 ? 1 - left / total : 0;
       el.start.disabled = true;
-      el.start.textContent = `전투 중 · ${state.enemies.length + state.spawnQueue.length}`;
+      el.start.textContent = `전투 중 · 남은 ${left}`;
+      el.start.style.setProperty('--prog', `${Math.round(done * 100)}%`);
+      el.start.classList.add('fighting');
     } else if (due > 0) {
+      el.start.classList.remove('fighting');
+      state.waveTotal = 0;
       el.start.disabled = state.phase !== PHASE.PREP || state.bits < due;
       el.start.textContent = state.bits < due
         ? `리그 참가비 ◈${due} 부족`
         : `리그 참가비 ◈${due} 납부 후 시작`;
     } else {
+      el.start.classList.remove('fighting');
+      state.waveTotal = 0;
       el.start.disabled = state.phase !== PHASE.PREP;
       el.start.textContent = '웨이브 시작';
     }
+  }
+
+  /**
+   * 보드 아래 요약 바.
+   * 타입 시너지와 기록은 원래 '정보' 탭에 묻혀 있어서, 배치 중에는 아무도 안 봤다.
+   * 배치하면서 바로 확인해야 하는 정보라 보드 옆으로 끌어냈다.
+   */
+  function drawFieldBar() {
+    const units = state.towers.filter((t) => !isProp(t.def));
+    if (!units.length) {
+      el.fbSynergy.className = 'fb-chips muted';
+      el.fbSynergy.textContent = '배치된 포켓몬 없음';
+    } else {
+      el.fbSynergy.className = 'fb-chips';
+      const rows = Object.entries(state.synergy)
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([, v]) => {
+          const on = v.threshold > 0;
+          const amt = v.kind === 'add'
+            ? `+${Math.round(v.value * 100)}%p`
+            : `+${Math.round(v.value * 100)}%`;
+          return `<span class="fbchip${on ? ' on' : ''}">
+            <b>${v.mark} ${v.name}</b><i>${v.count}</i>
+            <small>${on ? `${v.label} ${amt}` : `${v.nextAt ?? '-'}체 필요`}</small>
+          </span>`;
+        });
+      const props = state.towers.length - units.length;
+      rows.unshift(`<span class="fbchip count"><b>포켓몬</b><i>${units.length}</i>${props ? `<small>도구 ${props}</small>` : ''}</span>`);
+      el.fbSynergy.innerHTML = rows.join('');
+    }
+
+    const log = state.log.slice(0, 3);
+    el.fbLog.className = log.length ? 'fb-log' : 'fb-log muted';
+    el.fbLog.innerHTML = log.length
+      ? log.map((t, i) => `<div class="fbl${i === 0 ? ' fresh' : ''}">${t}</div>`).join('')
+      : '아직 기록이 없습니다.';
   }
 
   // ── 스테이지 선택 ──
@@ -624,8 +679,13 @@ export function initUI(state, handlers) {
       const b = document.createElement('button');
       b.className = 'card prop' + (state.buildMonsterId === id ? ' active' : '');
       b.disabled = state.bits < d.cost;
+      // 아이콘을 액자에 넣고 이름·효과·가격을 세로로 세운다 —
+      // 예전엔 이름 앞의 작은 색점이라 무슨 도구인지 구분이 안 됐다
       b.innerHTML = `
-        <span class="nm">${iconTag('prop', id, 26, d.color)} ${d.short}</span>
+        <span class="cardtop">
+          <span class="icoframe" style="--ic:${d.color}">${iconTag('prop', id, 34, d.color)}</span>
+          <span class="nm">${d.short}</span>
+        </span>
         <span class="sub">${d.desc}</span>
         <span class="price">${d.cost} 코인</span>`;
       b.addEventListener('click', () => handlers.onPickShop(id));
@@ -642,9 +702,10 @@ export function initUI(state, handlers) {
       b.className = 'card';
       b.disabled = state.bits < price;
       b.innerHTML = `
-        <span class="nm">${iconTag('item', item, 26)}</span>
-        <span class="sub">${ITEM_NAME[item]}</span>
-        <span class="price">${price}</span>`;
+        <span class="icoframe big">${iconTag('item', item, 38)}</span>
+        <span class="nm center">${ITEM_NAME[item]}</span>
+        <span class="price center">${price}</span>
+        <span class="have">보유 ${state.items[item] || 0}</span>`;
       b.addEventListener('click', () => handlers.onBuyItem(item));
       el.exchange.appendChild(b);
     }

@@ -31,30 +31,51 @@
   <!-- ── 게임 ── -->
   <div class="app">
     <header class="hud">
-      <button class="gbtn tiny ghost" id="btn-menu">☰ 스테이지</button>
-
-      <div class="hud-stage">
-        <b id="hud-stage-name">—</b>
-        <span class="tag" id="hud-stage-tag">—</span>
-      </div>
-
-      <div class="hud-chips">
-        <div class="chip wave"><i>🌊</i><b id="chip-wave">—</b></div>
-        <div class="chip bits"><i>◈</i><b id="chip-bits">—</b></div>
-        <div class="chip life"><i>♥</i><b id="chip-life">—</b></div>
-        <div class="chip item"><i id="ico-chips"></i><b id="chip-chips">0</b></div>
-        <div class="chip item"><i id="ico-disks"></i><b id="chip-disks">0</b></div>
-        <div class="chip item"><i id="ico-cores"></i><b id="chip-cores">0</b></div>
-        <div class="chip aug"><i>✦</i><b id="chip-aug">0</b></div>
-        <div class="chip rent"><i>🏅</i><b id="chip-rent">—</b></div>
-        <div class="chip dps" title="최근 3초 실효 DPS (상성·방어까지 반영된 실측값)">
-          <i>📊</i><b id="chip-dps">0</b><small id="chip-dps-peak"></small>
+      <!-- 1) 어디에 있는가 -->
+      <div class="hud-left">
+        <button class="gbtn tiny ghost" id="btn-menu">☰</button>
+        <div class="hud-stage">
+          <b id="hud-stage-name">—</b>
+          <span class="tag" id="hud-stage-tag">—</span>
         </div>
       </div>
 
+      <!-- 2) 지금 얼마나 버티고 있는가 — 가장 크게 -->
+      <div class="hud-vitals">
+        <div class="vital wave" title="현재 웨이브">
+          <span class="v-ico">🌊</span>
+          <span class="v-body"><b id="chip-wave">—</b><small>웨이브</small></span>
+        </div>
+        <div class="vital coin" title="보유 코인">
+          <span class="v-ico">◈</span>
+          <span class="v-body"><b id="chip-bits">—</b><small>코인</small></span>
+        </div>
+        <div class="vital life" title="남은 라이프">
+          <span class="v-ico">♥</span>
+          <span class="v-body"><b id="chip-life">—</b><small>라이프</small></span>
+        </div>
+      </div>
+
+      <!-- 3) 곁가지 정보 — 작게 묶는다 -->
+      <div class="hud-meta">
+        <div class="metabar" title="진화 아이템">
+          <span class="mi"><i id="ico-chips"></i><b id="chip-chips">0</b></span>
+          <span class="mi"><i id="ico-disks"></i><b id="chip-disks">0</b></span>
+          <span class="mi"><i id="ico-cores"></i><b id="chip-cores">0</b></span>
+        </div>
+        <div class="metabar">
+          <span class="mi aug" title="보유 특성"><i>✦</i><b id="chip-aug">0</b></span>
+          <span class="mi rent" title="다음 리그 참가비"><i>🏅</i><b id="chip-rent">—</b></span>
+        </div>
+        <div class="metabar dps" title="최근 3초 실효 DPS (상성·방어까지 반영된 실측값)">
+          <span class="mi"><i>📊</i><b id="chip-dps">0</b><small id="chip-dps-peak"></small></span>
+        </div>
+      </div>
+
+      <!-- 4) 다음에 무엇을 하는가 -->
       <div class="hud-actions">
-        <button class="gbtn ghost" id="btn-speed">1×</button>
-        <button class="gbtn go" id="btn-start">웨이브 시작</button>
+        <button class="gbtn ghost speed" id="btn-speed">1×</button>
+        <button class="gbtn go start" id="btn-start">웨이브 시작</button>
       </div>
     </header>
 
@@ -79,6 +100,18 @@
           <canvas id="board" width="880" height="528"></canvas>
         </div>
         <div class="hint" id="hint">몬스터볼(Q)을 던져 포켓몬을 잡고, 풀숲 위 빈 칸을 클릭해 배치하세요.</div>
+
+        <!-- 보드 아래 빈 공간을 채우면서, 탭에 묻혀 있던 정보를 항상 보이게 한다 -->
+        <div class="fieldbar">
+          <div class="fb-col">
+            <h3>필드</h3>
+            <div id="fb-synergy" class="fb-chips muted">배치된 포켓몬 없음</div>
+          </div>
+          <div class="fb-col">
+            <h3>최근 기록</h3>
+            <div id="fb-log" class="fb-log muted">—</div>
+          </div>
+        </div>
       </section>
 
       <aside class="side">
