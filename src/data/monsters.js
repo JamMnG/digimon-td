@@ -448,6 +448,11 @@ export const MONSTERS = {
   },
 };
 
+// 각 정의에 자기 id 를 심어 둔다.
+// 렌더러가 SPRITES[def.id] / ATTACK[def.id] 로 전용 도트를 찾기 때문에,
+// 이게 없으면 50종 전부가 부위 조합 폴백으로 그려진다.
+for (const [id, m] of Object.entries(MONSTERS)) m.id = id;
+
 // ── 파생 목록 ──
 export const MONSTER_IDS = Object.keys(MONSTERS);
 

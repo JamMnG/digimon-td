@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────
-// attackArt.js — 공격 모션 (몬스터별)
+// attackArt.js — 공격 모션 (포켓몬별)
 //
 // 두 축으로 나눈다.
 //   1) 공격 포즈  — 기본 스프라이트 위에 몇 줄만 덮어써서 "쏘는 자세"를 만든다.
-//                   입을 벌리거나, 무기를 들거나, 포문을 연다.
-//   2) 전용 탄    — 필살기마다 탄 모양이 다르다. 도트로 굽고 각도만 돌려 붙인다.
+//                   입을 벌리거나, 주먹을 내지르거나, 코어가 달아오른다.
+//   2) 전용 탄    — 기술마다 탄 모양이 다르다. 도트로 굽고 각도만 돌려 붙인다.
 //
 // 포즈는 발사 직후 반동(recoil) 동안만 나타난다. 프레임 두 장짜리 애니메이션이다.
 // ─────────────────────────────────────────────────────────────
@@ -13,222 +13,194 @@ import { createSprite } from './pixelSprite.js';
 
 const CLAW = '#f6f2e4';
 const WHITE = '#f4efe6';
-const BONE = '#e8e2d0';
 const GOLD = '#f0c040';
-const STEEL = '#b9c4d2';
+
+// ── 포즈 공용 부품 ──────────────────────────────────────────
+
+/** 입을 크게 벌린다 — 불꽃을 뿜는 종 */
+function maw(S, x, y, w, h, dark = '#5c1a08', hot = '#ff8c1a') {
+  S.rect(x, y, w, h, dark);
+  S.rect(x + 1, y + 1, w - 2, Math.max(1, h - 2), hot);
+  for (let i = x; i < x + w; i += 2) { S.set(i, y, CLAW); S.set(i + 1, y + h - 1, CLAW); }
+}
+
+/** 이빨을 드러내고 문다 — 딥상어동 라인 */
+function bite(S, x, y, w) {
+  S.rect(x, y, w, 5, '#3a1010');
+  S.rect(x + 1, y + 1, w - 2, 3, '#c0392b');
+  for (let i = x; i < x + w; i += 2) { S.set(i, y, WHITE); S.set(i, y + 4, WHITE); }
+}
+
+/** 주먹을 앞으로 내지른다 */
+function punch(S, C, x, y) {
+  S.rect(x, y, 6, 4, C.base);
+  S.rect(x, y, 6, 1, shade(C.base, 0.35));
+  S.rect(x, y + 4, 5, 1, shade(C.base, -0.35));
+}
+
+/** 초능력 파동 — 세로 광선 한 줄 */
+function psiRing(S, x, col = '#c8b0ff') {
+  S.rect(x, 6, 2, 8, col);
+  S.set(x, 5, WHITE); S.set(x + 1, 14, WHITE);
+}
+
+/** 유령이 부풀어 번진다 */
+function ghostFlare(S, C) {
+  S.rect(0, 2, 22, 2, shade(C.base, 0.35));
+  S.rect(0, 18, 22, 2, shade(C.base, -0.4));
+}
+
+/** 촛불이 치솟는다 */
+function candleFlare(S, x, y, h) {
+  S.taper(x, y, 5, h, '#6fd0ff');
+  S.taper(x + 1, y + 1, 3, Math.max(1, h - 2), '#c4f0ff');
+}
+
+/** 전기가 튄다 */
+function boltRing(S, x, y) {
+  for (let i = 0; i < 4; i++) S.set(x + (i % 2 ? 2 : 0), y + i, '#c8f4ff');
+  S.set(x + 1, y + 4, '#ffffff');
+}
+
+/** 발톱이 스친 자국 */
+function slashArc(S, x, y, col) {
+  for (let i = 0; i < 5; i++) S.set(x + i, y + i, col);
+}
 
 // ── 1) 공격 포즈 ────────────────────────────────────────────
 // 기본 스프라이트를 그린 뒤 실행된다. 필요한 부분만 덮어쓴다.
 export const ATTACK = {
-  // 입을 크게 벌린다
-  agumon(S, C) {
-    S.rect(8, 8, 7, 4, '#5c1a08');                 // 벌린 입
-    S.rect(9, 9, 5, 2, '#c0392b');
-    for (const x of [8, 10, 12, 14]) S.set(x, 8, CLAW);
-    for (const x of [9, 11, 13]) S.set(x, 11, CLAW);
+  // 입을 벌려 뿜는 형
+  charmander(S) { maw(S, 7, 8, 8, 3); },
+  charmeleon(S) { maw(S, 6, 8, 10, 3); },
+  charizard(S) { maw(S, 6, 7, 10, 4); },
+  mega_charizard_x(S) { maw(S, 6, 7, 10, 4, '#0e2a4a', '#6fd0ff'); },
+  mega_charizard_y(S) { maw(S, 5, 7, 12, 5); },
+  tepig(S) { S.rect(1, 6, 4, 4, '#ff8c1a'); S.rect(2, 7, 2, 2, '#ffd457'); },
+  pignite(S) { maw(S, 7, 8, 8, 3); },
+  emboar(S) { maw(S, 7, 7, 8, 4); },
+
+  // 큰 턱으로 무는 형
+  gible(S) { bite(S, 4, 7, 14); },
+  gabite(S) { bite(S, 5, 7, 12); },
+  garchomp(S) { bite(S, 6, 7, 10); slashArc(S, 0, 12, CLAW); },
+  mega_garchomp(S) { bite(S, 6, 7, 10); slashArc(S, 0, 10, '#ff8a5a'); slashArc(S, 16, 12, '#ff8a5a'); },
+
+  // 주먹을 내지르는 형
+  machop(S, C) { punch(S, C, 1, 12); },
+  machoke(S, C) { punch(S, C, 0, 12); },
+  machamp(S, C) { punch(S, C, 0, 11); punch(S, C, 0, 15); },
+  mega_machamp(S, C) { punch(S, C, 0, 10); punch(S, C, 0, 15); S.rect(0, 9, 22, 1, '#ffb03a'); },
+  poliwag(S) { S.rect(5, 9, 12, 1, '#a8e0ff'); },
+  poliwhirl(S) { S.rect(0, 14, 5, 4, WHITE); },
+  poliwrath(S) { S.rect(0, 13, 6, 5, WHITE); S.rect(0, 12, 6, 1, '#ffffff'); },
+
+  // 초능력을 모으는 형
+  abra(S) { psiRing(S, 3); },
+  kadabra(S) { psiRing(S, 2); S.rect(1, 5, 3, 2, '#e8f0ff'); },
+  alakazam(S) { psiRing(S, 1); S.rect(1, 4, 3, 2, '#e8f0ff'); S.rect(18, 4, 3, 2, '#e8f0ff'); },
+  mega_alakazam(S) { psiRing(S, 0); psiRing(S, 20); },
+  ralts(S) { psiRing(S, 2, '#7fe0a0'); },
+  kirlia(S) { psiRing(S, 1, '#7fe0a0'); },
+  gardevoir(S) { psiRing(S, 0, '#ffd0e0'); },
+  mega_gardevoir(S) { psiRing(S, 0, '#ffd0e0'); psiRing(S, 20, '#ffd0e0'); },
+
+  // 날개를 펼치는 형
+  togepi(S) { S.rect(2, 8, 3, 3, GOLD); S.rect(17, 8, 3, 3, GOLD); },
+  togetic(S) { S.sym(0, 7, 5, 5, WHITE); },
+  togekiss(S) { S.sym(0, 5, 8, 6, WHITE); S.rect(0, 11, 22, 1, '#e8f4ff'); },
+  dratini(S) { S.rect(4, 6, 14, 1, '#a8e0ff'); },
+  dragonair(S) { S.rect(3, 6, 16, 2, '#a8e0ff'); },
+  dragonite(S) { S.sym(0, 8, 5, 4, '#7fe0a0'); },
+
+  // 유령형 — 몸이 번지고 입이 커진다
+  gastly(S, C) { ghostFlare(S, C); },
+  haunter(S, C) {
+    ghostFlare(S, C);
+    S.rect(0, 8, 6, 5, shade(C.base, 0.2));
+    S.rect(16, 8, 6, 5, shade(C.base, 0.2));
   },
-  greymon(S, C) {
-    S.rect(7, 8, 9, 5, '#5c1a08');
-    S.rect(8, 9, 7, 3, '#e0603a');
-    for (const x of [7, 9, 11, 13, 15]) S.set(x, 8, CLAW);
-    for (const x of [8, 10, 12, 14]) S.set(x, 12, CLAW);
+  gengar(S, C) {
+    ghostFlare(S, C);
+    S.rect(5, 7, 12, 4, WHITE);
+    for (let x = 6; x < 17; x += 2) S.set(x, 7, C.deep);
   },
-  // 가슴 장갑을 열고 미사일을 드러낸다
-  metalgreymon(S, C) {
-    S.rect(6, 11, 4, 4, '#3a3f48');                // 열린 흉부
-    S.rect(11, 11, 4, 4, '#3a3f48');
-    S.rect(7, 12, 2, 2, '#ff5a3c');
-    S.rect(12, 12, 2, 2, '#ff5a3c');
-    S.rect(12, 5, 3, 1, '#ffd166');                // 눈이 밝아진다
-  },
-  // 등의 미사일이 점화된다
-  skullgreymon(S, C) {
-    S.shaded(16, 5, 5, 5, '#8e94a0');
-    S.rect(16, 10, 5, 2, '#ff8a3c');
-    S.rect(17, 12, 3, 2, '#ffd166');
-    S.set(8, 5, '#ffd166'); S.set(13, 5, '#ffd166');
-  },
-  // 양손을 모아 기를 만든다
-  wargreymon(S, C) {
-    S.shaded(8, 12, 6, 6, '#ff8a3c');
-    S.shaded(9, 13, 4, 4, '#ffd166');
-    S.rect(10, 14, 2, 2, WHITE);
-    S.rect(9, 5, 4, 1, '#ffffff');
-  },
-  blackwargreymon(S, C) {
-    S.shaded(8, 12, 6, 6, '#6b3ba8');
-    S.shaded(9, 13, 4, 4, '#a860ff');
-    S.rect(10, 14, 2, 2, WHITE);
+  mega_gengar(S, C) {
+    ghostFlare(S, C);
+    S.rect(4, 7, 14, 4, WHITE);
+    S.rect(8, 0, 6, 4, '#e0483a');
   },
 
-  // 입에서 푸른 불꽃
-  gabumon(S, C) {
-    S.rect(9, 9, 5, 3, '#0d2a4a');
-    S.rect(10, 10, 3, 1, '#5ad1ff');
-  },
-  garurumon(S, C) {
-    S.rect(18, 10, 4, 3, '#0d2a4a');               // 벌린 주둥이
-    S.rect(19, 11, 3, 1, '#8ee6ff');
-    S.set(16, 8, '#ffe066');
-  },
-  // 발차기 — 몸을 낮추고 다리를 든다
-  weregarurumon(S, C) {
-    S.rect(7, 17, 3, 5, null);
-    S.shaded(15, 14, 6, 3, C.base);                // 뻗은 다리
-    S.rect(20, 14, 1, 3, CLAW);
-    S.shaded(7, 19, 4, 3, C.dark);
-  },
-  blackweregarurumon(S, C) {
-    ATTACK.weregarurumon(S, C);
-    S.rect(7, 4, 2, 2, '#ff8a8a'); S.rect(13, 4, 2, 2, '#ff8a8a');
-  },
-  metalgarurumon(S, C) {
-    S.rect(5, 8, 4, 4, '#3a3f48');                 // 미사일 해치 개방
-    S.rect(10, 8, 4, 4, '#3a3f48');
-    S.rect(6, 9, 2, 2, '#ff5a3c'); S.rect(11, 9, 2, 2, '#ff5a3c');
-    S.rect(18, 10, 4, 3, '#0d2a4a'); S.rect(19, 11, 3, 1, '#d6f4ff');
-  },
-  blackmetalgarurumon(S, C) {
-    ATTACK.metalgarurumon(S, C);
-    S.rect(17, 8, 2, 1, '#ff6b6b');
+  // 촛불형 — 불꽃이 치솟는다
+  litwick(S) { candleFlare(S, 9, 0, 5); },
+  lampent(S) { candleFlare(S, 8, 0, 7); },
+  chandelure(S) { candleFlare(S, 8, 0, 7); candleFlare(S, 0, 5, 5); candleFlare(S, 16, 5, 5); },
+
+  // 풀형 — 덩굴과 꽃가루
+  bulbasaur(S) { S.rect(0, 10, 6, 1, '#4f9e52'); S.rect(0, 9, 2, 3, '#37773c'); },
+  ivysaur(S) { S.rect(0, 10, 8, 2, '#4f9e52'); },
+  venusaur(S) {
+    for (const x of [2, 7, 12, 17]) S.rect(x, 0, 3, 2, '#e8709a');
+    S.rect(0, 3, 22, 1, '#f0a0c0');
   },
 
-  // 입을 오므려 공기탄
-  patamon(S, C) {
-    S.rect(9, 12, 4, 3, '#c98a4b');
-    S.rect(10, 13, 2, 1, '#fff0cc');
-    S.symShaded(0, 5, 6, 10, C.base);              // 귀를 크게 펼친다
+  // 강철형 — 코어가 달아오른다
+  beldum(S) { S.rect(7, 9, 8, 6, '#ff9a8a'); },
+  metang(S) { S.rect(5, 5, 5, 5, '#ff9a8a'); S.rect(12, 5, 5, 5, '#ff9a8a'); },
+  metagross(S) {
+    S.rect(4, 4, 6, 5, '#ff9a8a'); S.rect(12, 4, 6, 5, '#ff9a8a');
+    S.rect(3, 8, 16, 2, '#ffd0a0');
   },
-  // 지팡이를 앞으로 내지른다
-  angemon(S, C) {
-    S.rect(18, 4, 1, 14, null);
-    S.rect(14, 12, 7, 2, GOLD);                    // 앞으로 겨눈 지팡이
-    S.rect(20, 11, 2, 4, '#ffe9a8');
-    S.rect(7, 4, 8, 1, '#ffffff');
-  },
-  holyangemon(S, C) {
-    S.rect(17, 4, 2, 12, null);
-    S.shaded(15, 6, 7, 7, '#fff6dd');              // 열린 게이트
-    S.rect(17, 8, 3, 3, '#ffd166');
-  },
-  slashangemon(S, C) {
-    S.rect(18, 8, 2, 12, null);
-    S.shaded(15, 9, 7, 2, '#e6edf6');              // 앞으로 뻗은 검
-    S.rect(21, 8, 1, 4, '#ffffff');
-  },
-  seraphimon(S, C) {
-    S.shaded(8, 11, 6, 6, '#8ecfff');
-    S.rect(9, 12, 4, 4, '#ffffff');
-    S.rect(7, 5, 8, 1, '#ffffff');
-  },
-  dominimon(S, C) {
-    S.rect(17, 2, 2, 15, null);
-    S.shaded(14, 9, 8, 2, '#f6faff');              // 찌르기
-    S.rect(21, 8, 1, 4, '#ffffff');
-  },
-
-  // 손끝에 보라 불꽃
-  impmon(S, C) {
-    S.shaded(15, 11, 4, 4, '#b34cff');
-    S.rect(16, 12, 2, 2, '#ffd6ff');
-    S.rect(9, 8, 4, 2, '#2a1030');
-  },
-  devimon(S, C) {
-    S.shaded(15, 9, 5, 8, shade(C.base, -0.3));    // 길게 뻗는 손톱
-    for (const y of [16, 17, 18]) S.set(20, y, CLAW);
-    S.rect(8, 6, 2, 2, '#ff8a8a'); S.rect(12, 6, 2, 2, '#ff8a8a');
-  },
-  skullsatamon(S, C) {
-    S.rect(19, 3, 1, 16, null);
-    S.shaded(14, 10, 8, 2, BONE);                  // 뼈 지팡이를 휘두른다
-    S.shaded(20, 8, 3, 3, '#ff8a4a');
-  },
-  wizardmon(S, C) {
-    S.rect(19, 4, 1, 15, null);
-    S.rect(15, 8, 6, 1, '#8ee6ff');                // 지팡이를 앞으로
-    S.shaded(20, 5, 3, 4, '#c8f4ff');
-    S.rect(9, 10, 2, 2, '#ffffff'); S.rect(12, 10, 2, 2, '#ffffff');
-  },
-  demon(S, C) {
-    S.shaded(7, 11, 10, 5, '#ff5a2b');             // 몸에서 화염
-    S.rect(8, 12, 8, 2, '#ffb03a');
-    S.rect(8, 6, 2, 2, '#ffffff'); S.rect(12, 6, 2, 2, '#ffffff');
-  },
-  beelzemon(S, C) {
-    S.shaded(16, 12, 6, 3, '#8a8f98');             // 총을 겨눈다
-    S.rect(21, 13, 1, 1, '#ffd166');
-    S.shaded(0, 12, 6, 3, '#8a8f98');
-    S.rect(0, 13, 1, 1, '#ffd166');
-  },
-
-  // 메가진화
-  omnimon(S, C) {
-    S.rect(17, 2, 2, 14, null);
-    S.shaded(14, 8, 8, 2, '#f6faff');              // 그레이 소드 찌르기
-    S.rect(21, 7, 1, 4, '#ffffff');
-    S.rect(0, 12, 2, 2, '#8ee6ff');                // 가루루 캐논 점화
-  },
-  omnimon_zwart(S, C) {
-    S.shaded(1, 11, 6, 4, '#454b58');
-    S.rect(0, 11, 2, 4, '#ff5a3c');
-    S.rect(17, 2, 2, 14, '#6b727d');
-  },
-  shakkoumon(S, C) {
-    S.rect(8, 12, 6, 5, '#e6fffb');                // 가슴의 눈이 빛난다
-    S.rect(9, 13, 4, 3, '#ffffff');
-    S.rect(0, 11, 2, 2, '#5ad1ff'); S.rect(20, 11, 2, 2, '#5ad1ff');
-  },
-  lordknightmon(S, C) {
-    S.rect(18, 3, 2, 14, null);
-    S.shaded(14, 9, 8, 2, '#fff0f4');
-    S.rect(21, 8, 1, 4, '#ff8ab0');
-  },
-  lucemon_fm(S, C) {
-    S.shaded(8, 12, 6, 6, '#ff3b6b');
-    S.rect(9, 13, 4, 4, '#ffd6e0');
-    S.rect(8, 6, 2, 2, '#ffffff'); S.rect(12, 6, 2, 2, '#ffffff');
-  },
-  chaosmon(S, C) {
-    S.shaded(15, 11, 7, 4, '#9aa4b0');
-    S.rect(21, 12, 1, 2, '#ff3b6b');
-    S.rect(8, 5, 2, 2, '#ff3b6b'); S.rect(12, 5, 2, 2, '#ff3b6b');
-  },
-  sakuyamon(S, C) {
-    S.rect(19, 3, 1, 16, null);
-    S.rect(15, 9, 6, 1, GOLD);                     // 석장을 앞으로
-    S.shaded(20, 6, 3, 4, '#fff3c4');
-    S.shaded(8, 12, 6, 4, '#fff0c2');
-  },
-  justimon(S, C) {
-    S.rect(19, 4, 2, 9, null);
-    S.shaded(15, 9, 7, 3, '#d6f6ff');              // 블레이드를 뻗는다
-    S.rect(21, 8, 1, 5, '#ffffff');
-  },
+  mega_metagross(S) { S.rect(3, 3, 16, 6, '#ff9a8a'); S.rect(8, 12, 6, 4, '#c8f4ff'); },
+  magnemite(S) { boltRing(S, 7, 6); },
+  magneton(S) { boltRing(S, 6, 5); boltRing(S, 13, 5); },
+  magnezone(S) { boltRing(S, 4, 8); boltRing(S, 14, 8); S.rect(0, 9, 22, 1, '#c8f4ff'); },
 };
 
 // ── 2) 전용 탄 ──────────────────────────────────────────────
-// 몬스터 id → 탄 종류. 없으면 'orb'.
 export const SHOT_OF = {
-  agumon: ['fire', '#ff8c42'], greymon: ['bigfire', '#ff6b2b'],
-  metalgreymon: ['missile', '#c9d2dc'], skullgreymon: ['missile', '#8e94a0'],
-  wargreymon: ['orb', '#ff9a3c'], blackwargreymon: ['orb', '#a860ff'],
+  // 불꽃 계열
+  charmander: ['fire', '#ff8c42'], charmeleon: ['fire', '#e2542f'],
+  charizard: ['bigfire', '#f2691f'],
+  mega_charizard_x: ['beam', '#6fd0ff'], mega_charizard_y: ['bigfire', '#ff6a10'],
+  tepig: ['fire', '#e08a6a'], pignite: ['bigfire', '#d8703f'],
+  emboar: ['bigfire', '#c2502a'],
+  litwick: ['fire', '#6fd0ff'], lampent: ['bigfire', '#6fd0ff'],
+  chandelure: ['bigfire', '#c4f0ff'],
 
-  gabumon: ['fire', '#7ec8f0'], garurumon: ['ice', '#8ee6ff'],
-  weregarurumon: ['slash', '#bfe4ff'], blackweregarurumon: ['slash', '#8a93b0'],
-  metalgarurumon: ['ice', '#d6f4ff'], blackmetalgarurumon: ['beam', '#7f8ab0'],
+  // 드래곤 계열
+  dratini: ['orb', '#a8e0ff'], dragonair: ['beam', '#8fd4e8'],
+  dragonite: ['beam', '#f0a83c'],
+  gible: ['bullet', '#4a7fc1'], gabite: ['slash', '#8fb8e8'],
+  garchomp: ['slash', '#a8d0ff'], mega_garchomp: ['slash', '#ff8a5a'],
 
-  patamon: ['orb', '#fff0cc'], angemon: ['arrow', '#ffe9a8'],
-  holyangemon: ['star', '#fff6dd'], slashangemon: ['slash', '#e6edf6'],
-  seraphimon: ['star', '#ffd166'], dominimon: ['beam', '#f6faff'],
+  // 격투 계열
+  machop: ['bullet', '#c8d8e4'], machoke: ['bullet', '#a8c0d4'],
+  machamp: ['bullet', '#e8f0f8'], mega_machamp: ['bullet', '#ffd0a0'],
+  poliwag: ['orb', '#a8e0ff'], poliwhirl: ['orb', '#7fc8f0'],
+  poliwrath: ['bullet', '#e8f4ff'],
 
-  impmon: ['fire', '#b34cff'], devimon: ['dark', '#7a2bd6'],
-  skullsatamon: ['bone', '#e8e2d0'], wizardmon: ['bolt', '#8ee6ff'],
-  demon: ['bigfire', '#ff4a2b'], beelzemon: ['bullet', '#ffd166'],
+  // 에스퍼 계열
+  abra: ['star', '#ffe9a8'], kadabra: ['star', '#ffd166'],
+  alakazam: ['beam', '#fff0c0'], mega_alakazam: ['beam', '#e8f0ff'],
+  ralts: ['orb', '#c8f0d8'], kirlia: ['star', '#d8f0e0'],
+  gardevoir: ['star', '#ffd0e0'], mega_gardevoir: ['beam', '#ffd0e0'],
+  togepi: ['orb', '#fff0cc'], togetic: ['star', '#fff6dd'],
+  togekiss: ['arrow', '#e8f4ff'],
 
-  omnimon: ['beam', '#f6faff'], omnimon_zwart: ['bigfire', '#6b727d'],
-  shakkoumon: ['beam', '#8ee6ff'], lordknightmon: ['slash', '#ff8ab0'],
-  lucemon_fm: ['dark', '#ff3b6b'], chaosmon: ['missile', '#9aa4b0'],
-  sakuyamon: ['star', '#ffd54f'], justimon: ['bolt', '#5ad1ff'],
+  // 고스트 계열
+  gastly: ['dark', '#8a6fd0'], haunter: ['dark', '#7b5fc4'],
+  gengar: ['dark', '#6b4fb8'], mega_gengar: ['dark', '#3a1f6a'],
+
+  // 풀 계열
+  bulbasaur: ['bullet', '#7fc98f'], ivysaur: ['orb', '#6fbc86'],
+  venusaur: ['orb', '#e8709a'],
+
+  // 강철 계열
+  beldum: ['missile', '#8fa8d0'], metang: ['missile', '#6f88b8'],
+  metagross: ['missile', '#4f6aa0'], mega_metagross: ['beam', '#7fd8ff'],
+  magnemite: ['bolt', '#c8f4ff'], magneton: ['bolt', '#a8e4ff'],
+  magnezone: ['bolt', '#7fd8ff'],
 };
 
 const shotCache = new Map();

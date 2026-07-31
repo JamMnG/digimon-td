@@ -1,468 +1,870 @@
 // ─────────────────────────────────────────────────────────────
-// monsterSprites.js — 몬스터별 전용 도트
+// monsterSprites.js — 포켓몬별 전용 도트 (50종)
 //
-// 부위 조합(digimonArt의 기본 경로)만으로는 "아구몬다움"이 안 나온다.
-// 원작에서 한눈에 알아보게 하는 요소는 캐릭터마다 다르기 때문이다:
-//   아구몬  튀어나온 주둥이 + 세 발톱 + 연한 배
-//   가브몬  머리를 덮은 줄무늬 모피 후드 + 뿔 하나
-//   파피몬  몸통만 한 커다란 귀(=날개)
-//   위자몬  얼굴을 가리는 큰 마법사 모자 + 망토
+// 부위 조합만으로는 "그 포켓몬다움"이 안 나온다. 원작에서 한눈에 알아보게
+// 하는 요소가 종마다 다르기 때문이다:
+//   파이리     꼬리 끝의 불꽃 + 크림색 배 + 몸통만 한 머리
+//   리자몽     등의 청록 날개 + 뒤로 뻗은 뿔 두 개
+//   한카리아스 양옆으로 길게 뻗은 뿔(비행기 실루엣) + 빨간 배
+//   발챙이     배의 검은 소용돌이. 그것 말고는 아무 무늬도 없다
+//   캐이시     감은 눈 + 갈색 어깨 갑판 + 여우 귀
+//   윤겔라     콧수염 + 이마의 별 + 쥔 스푼
+//   토게피     알 껍질 몸통 + 빨강·파랑 삼각 무늬
+//   고오스     검은 얼굴 구체를 감싼 보라 가스
+//   팬텀       찢어진 웃음 + 등의 가시
+//   코일       자석 두 개 + 십자 나사
+//   메타그로스 얼굴을 가르는 십자 + 네 다리
 //
-// 그래서 32종을 하나씩 찍는다. 여기 없는 id는 부위 조합으로 자동 생성된다.
+// 그래서 50종을 하나씩 찍는다. 라인 안에서는 실루엣이 이어지도록
+// 같은 골격 함수를 쓰고 특징만 얹는다 (파이리 → 리자드 → 리자몽).
 //
 // ★ 원본 이미지를 옮긴 것이 아니라, 알아볼 수 있는 특징만 살려 새로 찍은 도트다.
-//   이름·색과 마찬가지로 IP 격리 계층에 속한다 (보고서 0장).
+//   이름·색과 마찬가지로 IP 격리 계층에 속한다.
 //
 // 격자 22×24, 중심 x = 10.5. 위쪽이 머리, 아래쪽이 발.
 // ─────────────────────────────────────────────────────────────
 import { shade } from './shading.js';
 
-const BONE = '#e8e2d0';
-const BONE_D = '#c9c2ac';
-const WHITE = '#f4efe6';
-const STEEL = '#b9c4d2';
-const STEEL_D = '#7f8b9c';
-const GOLD = '#f0c040';
-const CLAW = '#f6f2e4';
+// ── 공용 색 ──
+const CREAM    = '#f7e4be';   // 배 / 밝은 안쪽
+const WHITE    = '#f4efe6';
+const OFFW     = '#e6ded0';
+const INKY     = '#2b2118';
+const RED      = '#e0483a';
+const REDD     = '#b03328';
+const FLAME_O  = '#ff8c1a';
+const FLAME_Y  = '#ffd457';
+const FLAME_B  = '#6fd0ff';
+const FLAME_B2 = '#c4f0ff';
+const STEEL    = '#b9c4d2';
+const STEEL_D  = '#7f8b9c';
+const GOLD     = '#f0c040';
+const CLAW     = '#f6f2e4';
+const BROWN    = '#8a6a3a';
+const BROWN_D  = '#5f4726';
+const LEAF     = '#4f9e52';
+const LEAF_D   = '#37773c';
+const PINK     = '#e8709a';
+const PINK_D   = '#c2506f';
+const GREEN_H  = '#4fbf82';   // 랄토스 라인 머리
+const BLUE_M   = '#4a90d9';
 
-// ── 공통 골격 ───────────────────────────────────────────────
-
-/** 2족 공룡 — 아구몬 계열의 뼈대 */
-function dino(S, C, o = {}) {
-  const belly = o.belly || shade(C.light, 0.4);
-  // 꼬리
-  S.shaded(15, 14, 5, 3, C.dark);
-  S.shaded(18, 11, 3, 4, C.dark);
-  // 다리
-  S.shaded(6, 17, 4, 5, C.base);
-  S.shaded(12, 17, 4, 5, C.base);
-  S.rect(5, 21, 5, 1, C.dark); S.rect(12, 21, 5, 1, C.dark);
-  if (o.toes !== false) {
-    for (const x of [5, 7, 9]) S.set(x, 22, CLAW);
-    for (const x of [12, 14, 16]) S.set(x, 22, CLAW);
-  }
-  // 몸통 + 배
-  S.shaded(6, 11, 10, 7, C.base);
-  S.shaded(8, 13, 6, 5, belly);
-  // 팔
-  S.shaded(3, 12, 3, 4, C.base);
-  S.shaded(16, 12, 3, 4, C.base);
-  if (o.claws !== false) {
-    for (const y of [16, 17]) { S.set(3, y, CLAW); S.set(18, y, CLAW); }
-    S.set(4, 17, CLAW); S.set(17, 17, CLAW);
-  }
-}
-
-/** 공룡 머리 — 주둥이가 앞으로 튀어나온다 */
-function dinoHead(S, C, o = {}) {
-  const top = o.top || C.base;
-  S.shaded(5, 2, 12, 6, top);
-  S.shaded(7, 7, 9, 3, o.snout || C.light);      // 주둥이
-  if (o.teeth !== false) for (const x of [8, 10, 12, 14]) S.set(x, 10, CLAW);
-  if (o.eyes !== false) {
-    S.rect(7, 4, 2, 2, WHITE); S.rect(13, 4, 2, 2, WHITE);
-    S.set(8, 5, '#2a1c10'); S.set(13, 5, '#2a1c10');
+// ── 공용 부품 ───────────────────────────────────────────────
+/**
+ * 모서리를 깎은 덩어리 — 이게 없으면 전부 사각형 블록으로 보인다.
+ * cut=1 이면 네 귀퉁이 1픽셀, cut=2 면 계단식으로 2픽셀을 지운다.
+ */
+function blob(S, x, y, w, h, col, cut = 1) {
+  S.shaded(x, y, w, h, col);
+  for (let i = 0; i < cut; i++) {
+    for (let j = 0; j < cut - i; j++) {
+      S.set(x + i, y + j, null);
+      S.set(x + w - 1 - i, y + j, null);
+      S.set(x + i, y + h - 1 - j, null);
+      S.set(x + w - 1 - i, y + h - 1 - j, null);
+    }
   }
 }
 
-/** 인간형 몸통 — 어깨·허리·두 다리 */
-function humanoid(S, C, o = {}) {
+/** 위만 둥근 덩어리 — 머리에 쓴다 */
+function dome(S, x, y, w, h, col, cut = 2) {
+  S.shaded(x, y, w, h, col);
+  for (let i = 0; i < cut; i++) {
+    for (let j = 0; j < cut - i; j++) {
+      S.set(x + i, y + j, null);
+      S.set(x + w - 1 - i, y + j, null);
+    }
+  }
+}
+
+/** 머리와 몸 사이 그늘 — 이 한 줄이 실루엣을 갈라 준다 */
+function neck(S, x, y, w, col) {
+  S.rect(x, y, w, 1, col);
+}
+
+
+/** 눈 — 흰자 + 검은 동공. 도트는 눈만 제대로 찍혀도 캐릭터로 읽힌다 */
+function eyes(S, y, o = {}) {
+  const lx = o.lx ?? 7, rx = o.rx ?? 13, w = o.w ?? 2, h = o.h ?? 2;
+  const sclera = o.sclera || WHITE, pupil = o.pupil || INKY;
+  S.rect(lx, y, w, h, sclera);
+  S.rect(rx, y, w, h, sclera);
+  S.set(lx + w - 1, y + h - 1, pupil);
+  S.set(rx, y + h - 1, pupil);
+}
+
+/** 감은 눈 — 캐이시처럼 눈을 뜨지 않는 종 */
+function closedEyes(S, y, col = INKY) {
+  S.rect(7, y, 3, 1, col);
+  S.rect(12, y, 3, 1, col);
+}
+
+/** 2족 공룡 다리 — 파이리·딥상어동 계열 공용 */
+function dinoLegs(S, C, o = {}) {
+  const leg = o.leg || C.base;
+  S.shaded(6, 17, 4, 5, leg);
+  S.shaded(12, 17, 4, 5, leg);
+  S.rect(5, 21, 5, 1, shade(leg, -0.3));
+  S.rect(12, 21, 5, 1, shade(leg, -0.3));
+  for (const x of [5, 7, 9]) S.set(x, 22, CLAW);
+  for (const x of [12, 14, 16]) S.set(x, 22, CLAW);
+}
+
+/** 인간형 몸통 + 다리 */
+function humanBody(S, C, o = {}) {
   const leg = o.leg || C.dark;
   S.shaded(7, 17, 3, 5, leg);
   S.shaded(12, 17, 3, 5, leg);
   S.rect(6, 22, 4, 1, shade(leg, -0.35));
   S.rect(12, 22, 4, 1, shade(leg, -0.35));
-  S.shaded(7, 10, 8, 8, C.base);
-  S.symShaded(4, 10, 3, 3, o.shoulder || C.light);   // 어깨
-  S.symShaded(4, 13, 2, 4, o.arm || C.base);         // 팔
-}
-
-/** 네발 짐승 */
-function beast(S, C, o = {}) {
-  S.shaded(3, 12, 16, 6, C.base);                 // 긴 몸통
-  for (const x of [4, 8, 13, 17]) S.shaded(x, 17, 2, 5, C.dark);
-  S.shaded(14, 6, 7, 7, C.base);                  // 머리 (오른쪽 앞)
-  S.shaded(18, 10, 4, 3, o.snout || C.light);     // 주둥이
-  S.taper(14, 3, 3, 4, C.light);                  // 귀
-  S.taper(18, 3, 3, 4, C.light);
-  S.rect(16, 8, 2, 2, WHITE); S.set(17, 9, '#1b1610');
-  S.shaded(0, 10, 4, 4, o.tail || C.light);       // 꼬리
-}
-
-/** 천사형 — 날개 + 갑옷 */
-function angel(S, C, o = {}) {
-  const wing = o.wing || WHITE;
-  const n = o.wings || 2;
-  for (let i = 0; i < n; i++) {
-    const y = 4 + i * 4;
-    S.symShaded(0, y, 6, 3, i % 2 ? shade(wing, -0.12) : wing);
-  }
-  humanoid(S, C, { leg: o.leg || C.dark, shoulder: o.armor || C.light, arm: o.armor || C.base });
-  if (o.halo !== false) {
-    S.rect(8, 0, 6, 1, '#ffe9a8');
-    S.set(7, 0, GOLD); S.set(14, 0, GOLD);
+  S.shaded(7, 10, 8, 8, o.torso || C.base);
+  if (o.arms !== false) {
+    S.symShaded(4, 11, 3, 3, o.shoulder || C.light);
+    S.symShaded(4, 14, 2, 4, o.arm || C.base);
   }
 }
 
-/** 마인형 — 박쥐 날개 */
-function batWings(S, col) {
-  S.symShaded(0, 5, 6, 5, col);
-  S.sym(0, 10, 4, 3, shade(col, -0.2));
-  S.sym(0, 4, 3, 1, shade(col, 0.25));
-  S.sym(1, 13, 3, 2, shade(col, -0.35));
+/** 네발 몸통 — 이상해씨·뚜꾸리 계열 */
+function quadBody(S, C, o = {}) {
+  S.shaded(3, 12, 16, 6, C.base);
+  const leg = o.leg || C.dark;
+  for (const x of [4, 8, 13, 17]) S.shaded(x, 17, 2, 5, leg);
+  for (const x of [4, 8, 13, 17]) S.rect(x, 22, 2, 1, shade(leg, -0.3));
 }
 
-// ── 몬스터별 ────────────────────────────────────────────────
+/** 뱀 몸통 — 미뇽·신뇽 */
+function serpent(S, C, o = {}) {
+  S.shaded(8, 9, 7, 7, C.base);          // 상체
+  S.shaded(6, 15, 10, 4, C.base);        // 굽이
+  S.shaded(3, 18, 12, 3, C.base);        // 바닥에 닿은 몸
+  S.rect(3, 20, 12, 1, C.dark);
+  const belly = o.bellyCol || CREAM;
+  S.rect(9, 12, 5, 4, belly);
+  S.rect(7, 18, 7, 2, belly);
+}
+
+/** 꼬리 끝 불꽃 — 파이리 라인의 정체성 */
+function tailFlame(S, x, y, o = {}) {
+  const a = o.outer || FLAME_O, b = o.inner || FLAME_Y;
+  S.taper(x, y, 5, 5, a);
+  S.taper(x + 1, y + 1, 3, 3, b);
+  S.set(x + 2, y - 1, b);
+}
+
+/** 금속 표면 — 강철 라인 공용 */
+function metalFace(S, C, x, y, w, h) {
+  S.shaded(x, y, w, h, C.base);
+  S.rect(x, y, w, 1, shade(C.base, 0.42));
+  S.rect(x + 1, y + h - 1, w - 2, 1, shade(C.base, -0.42));
+}
+
+// ── 50종 ────────────────────────────────────────────────────
 export const SPRITES = {
-  // ══ A라인 ══
-  agumon(S, C) {
-    dino(S, C, { belly: '#ffe0b5' });
-    dinoHead(S, C, { snout: shade(C.base, 0.22) });
+  // ══════════ 파이리 라인 ══════════
+  charmander(S, C) {
+    S.shaded(16, 14, 4, 3, C.base);              // 꼬리를 몸에서 떼어 불꽃이 보이게
+    S.shaded(18, 11, 3, 4, C.base);
+    tailFlame(S, 17, 6);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    S.rect(5, 22, 5, 1, C.dark); S.rect(12, 22, 5, 1, C.dark);
+    blob(S, 7, 11, 8, 7, C.base);
+    blob(S, 8, 13, 6, 5, CREAM);                 // 크림색 배
+    S.shaded(4, 12, 3, 3, C.base); S.shaded(15, 12, 3, 3, C.base);
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 5, 2, 12, 8, C.base, 2);             // 몸통만 한 머리
+    S.shaded(7, 8, 8, 2, shade(C.base, 0.24));   // 주둥이
+    eyes(S, 4);
+    S.rect(9, 8, 4, 1, INKY);
   },
-  greymon(S, C) {
-    dino(S, C, { belly: '#ffd9a8' });
-    S.rect(6, 12, 10, 1, '#2f5d8c');              // 파란 줄무늬
-    S.rect(6, 15, 10, 1, '#2f5d8c');
-    // 갈색 뿔 투구
-    S.shaded(5, 2, 12, 5, '#9a6b3a');
-    S.taper(2, 1, 4, 4, BONE, 1);                 // 옆 뿔
-    S.taper(16, 1, 4, 4, BONE, 1);
-    S.shaded(7, 7, 9, 3, shade(C.base, 0.2));     // 주둥이
-    S.taper(10, 5, 3, 3, BONE);                   // 코뿔
-    for (const x of [8, 10, 12, 14]) S.set(x, 10, CLAW);
-    S.rect(7, 4, 2, 2, '#ffe066'); S.rect(13, 4, 2, 2, '#ffe066');
-    S.set(8, 5, '#2a1c10'); S.set(13, 5, '#2a1c10');
+
+  charmeleon(S, C) {
+    S.shaded(16, 13, 4, 3, C.base);
+    S.shaded(18, 9, 3, 5, C.base);
+    tailFlame(S, 17, 4);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 11, 8, 7, C.base);
+    blob(S, 8, 13, 6, 5, CREAM);
+    S.shaded(3, 12, 3, 4, C.base); S.shaded(16, 12, 3, 4, C.base);
+    S.set(3, 15, CLAW); S.set(18, 15, CLAW);
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    S.taper(15, 0, 5, 4, C.light, 1);            // 뒤통수 뿔 하나
+    S.shaded(7, 8, 8, 2, shade(C.base, 0.24));
+    eyes(S, 5, { sclera: '#ffe9a8' });
+    for (const x of [8, 11, 14]) S.set(x, 9, CLAW);
   },
-  metalgreymon(S, C) {
-    dino(S, C, { belly: '#ffcf9a', claws: false });
-    S.shaded(6, 11, 10, 4, STEEL);                // 금속 상반신
-    S.rect(8, 12, 6, 1, STEEL_D);
-    S.shaded(15, 11, 6, 4, STEEL);                // 오른팔 금속 갈고리
-    S.rect(20, 11, 1, 4, STEEL_D);
-    S.set(21, 11, CLAW); S.set(21, 14, CLAW);
-    S.shaded(5, 2, 12, 6, STEEL);                 // 금속 투구
-    S.taper(2, 1, 4, 4, GOLD, 1); S.taper(16, 1, 4, 4, GOLD, 1);
-    S.rect(7, 5, 8, 2, '#241c14');
-    S.rect(12, 5, 3, 1, '#ff3b3b');               // 외눈 발광
-    S.shaded(7, 8, 8, 2, shade(C.base, 0.15));
+
+  charizard(S, C) {
+    // 청록 날개 — 리자몽의 1순위 식별 요소. 몸 밖으로 확실히 뻗는다
+    S.taper(0, 3, 6, 5, '#2e7fb8', 1);
+    S.taper(16, 3, 6, 5, '#2e7fb8', 1);
+    S.rect(1, 8, 4, 2, '#1f5d8c'); S.rect(17, 8, 4, 2, '#1f5d8c');
+    S.shaded(16, 13, 4, 3, C.base);
+    S.shaded(18, 9, 3, 5, C.base);
+    tailFlame(S, 17, 4);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 11, 8, 7, C.base);
+    blob(S, 8, 13, 6, 5, CREAM);
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 2, 10, 8, C.base, 2);
+    S.taper(3, 0, 4, 4, CREAM, 1);               // 뒤로 뻗은 뿔 2개
+    S.taper(15, 0, 4, 4, CREAM, 1);
+    S.shaded(7, 8, 8, 2, shade(C.base, 0.24));
+    eyes(S, 4, { sclera: '#ffe066' });
+    for (const x of [8, 11, 14]) S.set(x, 9, CLAW);
   },
-  skullgreymon(S, C) {
-    // 해골 공룡 — 갈비뼈와 등의 미사일
-    S.shaded(15, 14, 5, 3, BONE_D);
-    S.shaded(18, 10, 3, 5, BONE_D);
-    S.shaded(6, 17, 4, 5, BONE_D); S.shaded(12, 17, 4, 5, BONE_D);
-    S.rect(5, 22, 5, 1, BONE); S.rect(12, 22, 5, 1, BONE);
-    S.shaded(7, 11, 8, 7, BONE);
-    for (const y of [12, 14, 16]) {                // 갈비뼈
-      S.rect(8, y, 6, 1, BONE_D);
-      S.set(7, y, C.deep); S.set(14, y, C.deep);
+
+  mega_charizard_x(S, C) {
+    S.taper(0, 2, 6, 6, '#1f3568', 1);
+    S.taper(16, 2, 6, 6, '#1f3568', 1);
+    S.rect(1, 8, 4, 2, '#0e1a33'); S.rect(17, 8, 4, 2, '#0e1a33');
+    S.shaded(16, 13, 4, 3, C.base);
+    S.shaded(18, 9, 3, 5, C.base);
+    tailFlame(S, 17, 3, { outer: FLAME_B, inner: FLAME_B2 });
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 11, 8, 7, C.base);
+    blob(S, 8, 13, 6, 5, shade(C.base, 0.35));
+    neck(S, 7, 10, 8, shade(C.base, -0.5));
+    dome(S, 6, 2, 10, 8, C.base, 2);
+    S.taper(3, 0, 4, 4, '#5f7fc0', 1);
+    S.taper(15, 0, 4, 4, '#5f7fc0', 1);
+    eyes(S, 4, { sclera: FLAME_B2, pupil: '#0d1a2c' });
+    // 입가에서 새는 푸른 불꽃
+    S.rect(7, 8, 8, 2, '#12305a');
+    for (const x of [7, 9, 11, 13]) S.set(x, 9, FLAME_B);
+    S.set(6, 7, FLAME_B); S.set(15, 7, FLAME_B2);
+  },
+
+  mega_charizard_y(S, C) {
+    S.taper(0, 1, 7, 7, '#c85a1f', 1);           // 더 큰 날개
+    S.taper(15, 1, 7, 7, '#c85a1f', 1);
+    S.rect(1, 8, 5, 3, '#8a3712'); S.rect(16, 8, 5, 3, '#8a3712');
+    S.shaded(16, 13, 4, 3, C.base);
+    S.shaded(18, 9, 3, 5, C.base);
+    tailFlame(S, 17, 3, { outer: '#ff6a10' });
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 11, 8, 7, C.base);
+    blob(S, 8, 13, 6, 5, CREAM);
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 2, 10, 8, C.base, 2);
+    S.taper(2, 0, 4, 4, CREAM, 1);               // 뿔 셋
+    S.taper(16, 0, 4, 4, CREAM, 1);
+    S.taper(9, 0, 4, 3, CREAM, 1);
+    S.shaded(7, 8, 8, 2, shade(C.base, 0.24));
+    eyes(S, 4, { sclera: '#fff0a0' });
+  },
+
+  // ══════════ 미뇽 라인 ══════════
+  dratini(S, C) {
+    // 뱀 — 아래는 굵고 위로 갈수록 가늘어진다
+    blob(S, 3, 18, 13, 4, C.base);
+    blob(S, 6, 14, 8, 5, C.base);
+    blob(S, 8, 9, 6, 6, C.base);
+    S.rect(9, 16, 5, 4, CREAM); S.rect(6, 20, 9, 1, CREAM);
+    dome(S, 7, 3, 8, 7, C.base, 2);
+    S.taper(2, 3, 5, 5, WHITE, 1);               // 머리 옆 흰 지느러미
+    S.taper(15, 3, 5, 5, WHITE, 1);
+    eyes(S, 5, { lx: 8, rx: 12 });
+    S.rect(10, 8, 3, 1, shade(C.base, -0.4));
+  },
+
+  dragonair(S, C) {
+    S.taper(1, 10, 5, 5, WHITE, 1);              // 흰 날개 지느러미
+    S.taper(16, 10, 5, 5, WHITE, 1);
+    blob(S, 3, 18, 13, 4, C.base);
+    blob(S, 6, 14, 8, 5, C.base);
+    blob(S, 8, 9, 6, 6, C.base);
+    S.rect(9, 16, 5, 4, CREAM); S.rect(6, 20, 9, 1, CREAM);
+    S.rect(9, 10, 4, 2, '#4a90d9');              // 목의 파란 구슬
+    S.rect(10, 10, 2, 1, '#b8e8ff');
+    S.rect(9, 19, 3, 2, '#4a90d9');              // 꼬리 구슬
+    dome(S, 7, 3, 8, 7, C.base, 2);
+    S.taper(9, 0, 4, 4, WHITE);                  // 이마 뿔
+    eyes(S, 5, { lx: 8, rx: 12 });
+  },
+
+  dragonite(S, C) {
+    S.taper(0, 9, 5, 5, LEAF, 1);                // 짧은 초록 날개
+    S.taper(17, 9, 5, 5, LEAF, 1);
+    S.shaded(16, 15, 5, 4, C.base);
+    blob(S, 5, 18, 5, 4, C.base); blob(S, 12, 18, 5, 4, C.base);
+    blob(S, 5, 11, 12, 7, C.base);               // 통통한 몸
+    blob(S, 8, 13, 6, 5, CREAM);
+    S.shaded(2, 12, 3, 4, C.base); S.shaded(17, 12, 3, 4, C.base);
+    neck(S, 6, 10, 10, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    S.shaded(8, 8, 6, 2, shade(C.base, 0.24));   // 뭉툭한 주둥이
+    S.taper(6, 0, 3, 4, C.light);                // 안테나 둘
+    S.taper(13, 0, 3, 4, C.light);
+    eyes(S, 5);
+  },
+
+  // ══════════ 딥상어동 라인 ══════════
+  gible(S, C) {
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 13, 8, 6, C.base);
+    blob(S, 8, 15, 6, 4, RED);                   // 빨간 배
+    S.shaded(4, 14, 3, 3, C.base); S.shaded(15, 14, 3, 3, C.base);
+    dome(S, 4, 2, 14, 10, C.base, 3);            // 몸만 한 상어 머리
+    S.taper(0, 3, 5, 5, C.light, 1);             // 머리 옆 지느러미
+    S.taper(17, 3, 5, 5, C.light, 1);
+    S.rect(5, 9, 12, 3, '#3a1010');              // 크게 벌린 입
+    for (let x = 5; x < 17; x += 2) { S.set(x, 9, WHITE); S.set(x + 1, 11, WHITE); }
+    eyes(S, 4, { lx: 6, rx: 14, sclera: '#ffe9a8' });
+  },
+
+  gabite(S, C) {
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 12, 8, 7, C.base);
+    blob(S, 8, 14, 6, 5, RED);
+    S.shaded(3, 12, 3, 5, C.base); S.shaded(16, 12, 3, 5, C.base);
+    S.taper(2, 16, 3, 3, CLAW); S.taper(17, 16, 3, 3, CLAW);
+    neck(S, 7, 11, 8, shade(C.base, -0.45));
+    dome(S, 5, 3, 12, 8, C.base, 2);
+    S.taper(0, 3, 5, 4, C.light, 1);
+    S.taper(17, 3, 5, 4, C.light, 1);
+    S.rect(6, 8, 10, 3, '#3a1010');
+    for (let x = 6; x < 16; x += 2) { S.set(x, 8, WHITE); S.set(x + 1, 10, WHITE); }
+    eyes(S, 5, { sclera: '#ffe9a8' });
+  },
+
+  garchomp(S, C) {
+    // 양옆으로 뻗은 뿔 — 한카리아스의 실루엣 그 자체
+    S.taper(0, 2, 8, 3, C.light, 1);
+    S.taper(14, 2, 8, 3, C.light, 1);
+    S.shaded(17, 15, 4, 4, C.dark);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 12, 8, 7, C.base);
+    blob(S, 8, 14, 6, 5, RED);
+    S.shaded(3, 12, 3, 5, RED); S.shaded(16, 12, 3, 5, RED);
+    S.taper(1, 16, 3, 4, CLAW); S.taper(18, 16, 3, 4, CLAW);
+    neck(S, 7, 11, 8, shade(C.base, -0.45));
+    dome(S, 6, 4, 10, 7, C.base, 2);
+    S.rect(7, 9, 8, 2, '#3a1010');
+    for (let x = 7; x < 15; x += 2) S.set(x, 9, WHITE);
+    eyes(S, 5, { sclera: GOLD });
+  },
+
+  mega_garchomp(S, C) {
+    S.taper(0, 2, 8, 3, RED, 1);
+    S.taper(14, 2, 8, 3, RED, 1);
+    S.shaded(17, 15, 4, 4, C.deep);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 7, 12, 8, 7, C.base);
+    blob(S, 8, 14, 6, 5, RED);
+    S.taper(0, 9, 5, 9, CLAW);                   // 팔 전체가 낫
+    S.taper(17, 9, 5, 9, CLAW);
+    neck(S, 7, 11, 8, shade(C.base, -0.5));
+    dome(S, 6, 4, 10, 7, C.base, 2);
+    S.rect(7, 9, 8, 2, '#3a1010');
+    for (let x = 7; x < 15; x += 2) S.set(x, 9, WHITE);
+    eyes(S, 5, { sclera: '#ff8a5a', pupil: '#3a0f0a' });
+  },
+
+  // ══════════ 알통몬 라인 ══════════
+  machop(S, C) {
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 6, 11, 10, 7, C.base);               // 넓은 가슴
+    S.shaded(3, 12, 3, 3, C.light); S.shaded(16, 12, 3, 3, C.light);
+    S.shaded(3, 15, 3, 3, C.base); S.shaded(16, 15, 3, 3, C.base);
+    S.rect(8, 13, 6, 1, shade(C.base, -0.35));
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);   // 머리 위 세 볏
+    eyes(S, 5);
+    S.rect(9, 8, 4, 1, INKY);
+  },
+
+  machoke(S, C) {
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(6, 16, 10, 2, RED);                   // 빨간 벨트
+    S.rect(10, 16, 2, 2, GOLD);
+    S.shaded(2, 12, 4, 3, C.light); S.shaded(16, 12, 4, 3, C.light);
+    S.shaded(2, 15, 3, 3, C.base); S.shaded(17, 15, 3, 3, C.base);
+    S.rect(8, 13, 6, 1, shade(C.base, -0.35));
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);
+    eyes(S, 5);
+    S.rect(9, 8, 4, 1, INKY);
+  },
+
+  machamp(S, C) {
+    // 팔 넷 — 괴력몬의 유일무이한 실루엣
+    S.shaded(3, 10, 3, 3, C.light); S.shaded(16, 10, 3, 3, C.light);
+    S.shaded(2, 13, 3, 4, C.base); S.shaded(17, 13, 3, 4, C.base);
+    S.shaded(0, 13, 3, 3, C.light); S.shaded(19, 13, 3, 3, C.light);
+    S.shaded(0, 16, 3, 4, C.base); S.shaded(19, 16, 3, 4, C.base);
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(6, 16, 10, 2, RED);
+    S.rect(10, 16, 2, 2, GOLD);
+    neck(S, 7, 10, 8, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, C.light);
+    eyes(S, 5);
+    S.rect(9, 8, 4, 1, INKY);
+  },
+
+  mega_machamp(S, C) {
+    S.shaded(3, 9, 4, 3, C.light); S.shaded(15, 9, 4, 3, C.light);
+    S.shaded(2, 12, 4, 5, C.base); S.shaded(16, 12, 4, 5, C.base);
+    S.shaded(0, 13, 3, 3, GOLD); S.shaded(19, 13, 3, 3, GOLD);
+    S.shaded(0, 16, 3, 4, C.base); S.shaded(19, 16, 3, 4, C.base);
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(6, 16, 10, 2, GOLD);
+    S.rect(10, 16, 2, 2, RED);
+    neck(S, 7, 10, 8, shade(C.base, -0.5));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    for (const x of [7, 10, 13]) S.taper(x, 0, 3, 4, GOLD);
+    eyes(S, 5, { sclera: '#ffd0a0', pupil: '#5a1a0a' });
+  },
+
+  // ══════════ 발챙이 라인 ══════════
+  poliwag(S, C) {
+    S.shaded(15, 17, 5, 3, C.light);             // 얇은 꼬리
+    S.taper(18, 14, 4, 4, C.light, 1);
+    blob(S, 3, 4, 16, 16, C.base, 3);            // 거의 완전한 구
+    // 배의 검은 소용돌이 — 발챙이 라인의 전부
+    blob(S, 6, 9, 10, 10, WHITE, 2);
+    S.rect(8, 11, 6, 1, INKY); S.rect(8, 11, 1, 5, INKY);
+    S.rect(8, 15, 5, 1, INKY); S.rect(12, 12, 1, 4, INKY);
+    S.rect(10, 12, 3, 1, INKY);
+    eyes(S, 6, { lx: 5, rx: 14, w: 3, h: 3 });
+  },
+
+  poliwhirl(S, C) {
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    S.shaded(2, 12, 4, 3, C.base); S.shaded(16, 12, 4, 3, C.base);
+    S.shaded(1, 15, 4, 3, WHITE); S.shaded(17, 15, 4, 3, WHITE);
+    blob(S, 4, 3, 14, 16, C.base, 3);
+    blob(S, 7, 7, 8, 9, WHITE, 2);
+    S.rect(8, 9, 6, 1, INKY); S.rect(8, 9, 1, 4, INKY);
+    S.rect(8, 12, 5, 1, INKY); S.rect(12, 10, 1, 3, INKY);
+    eyes(S, 4, { lx: 5, rx: 14, w: 3, h: 3 });
+  },
+
+  poliwrath(S, C) {
+    S.shaded(1, 10, 5, 5, C.base); S.shaded(16, 10, 5, 5, C.base);
+    S.shaded(0, 14, 5, 4, WHITE); S.shaded(17, 14, 5, 4, WHITE);
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 4, 2, 14, 17, C.base, 3);            // 근육질 통짜 몸
+    blob(S, 7, 8, 8, 9, WHITE, 2);
+    S.rect(8, 10, 6, 1, INKY); S.rect(8, 10, 1, 5, INKY);
+    S.rect(8, 14, 5, 1, INKY); S.rect(12, 11, 1, 4, INKY);
+    S.rect(10, 11, 3, 1, INKY);
+    eyes(S, 4, { lx: 5, rx: 14, w: 3, h: 2 });
+  },
+
+  // ══════════ 뚜꾸리 라인 ══════════
+  tepig(S, C) {
+    S.shaded(18, 12, 3, 3, C.dark);
+    S.rect(19, 10, 2, 2, C.light);               // 꼬리 끝 동그라미
+    blob(S, 3, 11, 15, 7, C.base, 1);
+    for (const x of [4, 8, 13, 16]) blob(S, x, 17, 3, 5, '#3a2a24');
+    S.rect(3, 14, 15, 1, '#3a2a24');             // 검은 줄무늬
+    dome(S, 2, 4, 11, 9, C.base, 2);
+    S.rect(2, 11, 11, 1, '#3a2a24');
+    S.shaded(0, 7, 4, 4, '#f2c4a0');             // 노란 코
+    S.set(1, 8, INKY); S.set(3, 8, INKY);
+    S.taper(3, 1, 4, 4, C.dark); S.taper(9, 1, 4, 4, C.dark);   // 귀
+    eyes(S, 6, { lx: 5, rx: 10 });
+  },
+
+  pignite(S, C) {
+    blob(S, 6, 18, 4, 4, C.base); blob(S, 12, 18, 4, 4, C.base);
+    blob(S, 6, 11, 10, 7, '#3a2a24');            // 검은 몸통
+    S.rect(6, 15, 10, 2, GOLD);
+    S.shaded(3, 12, 3, 3, C.light); S.shaded(16, 12, 3, 3, C.light);
+    S.shaded(3, 15, 3, 3, C.base); S.shaded(16, 15, 3, 3, C.base);
+    neck(S, 7, 10, 8, '#241a16');
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    S.shaded(8, 8, 6, 3, '#f2c4a0');             // 노란 코
+    S.set(9, 9, INKY); S.set(12, 9, INKY);
+    S.taper(4, 0, 4, 4, C.dark); S.taper(14, 0, 4, 4, C.dark);
+    eyes(S, 5);
+  },
+
+  emboar(S, C) {
+    S.shaded(1, 11, 4, 4, C.base); S.shaded(17, 11, 4, 4, C.base);
+    S.shaded(1, 15, 4, 4, C.dark); S.shaded(17, 15, 4, 4, C.dark);
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 5, 11, 12, 8, C.base);
+    S.rect(5, 16, 12, 2, GOLD);
+    neck(S, 6, 10, 10, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    // 턱수염처럼 늘어진 불꽃 — 엠보아의 표식
+    S.taper(2, 6, 4, 6, FLAME_O); S.taper(16, 6, 4, 6, FLAME_O);
+    S.taper(3, 7, 2, 4, FLAME_Y); S.taper(17, 7, 2, 4, FLAME_Y);
+    S.shaded(8, 8, 6, 3, '#f2c4a0');
+    S.set(9, 9, INKY); S.set(12, 9, INKY);
+    eyes(S, 5, { sclera: '#ffe066' });
+  },
+
+  // ══════════ 캐이시 라인 ══════════
+  abra(S, C) {
+    S.shaded(16, 17, 5, 3, C.base);              // 긴 꼬리
+    blob(S, 6, 16, 10, 6, BROWN);                // 갈색 하체 갑판
+    blob(S, 7, 11, 8, 6, C.base);
+    S.shaded(4, 12, 3, 4, BROWN); S.shaded(15, 12, 3, 4, BROWN);
+    neck(S, 8, 10, 6, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    S.taper(3, 0, 5, 5, C.base);                 // 뾰족 여우 귀
+    S.taper(14, 0, 5, 5, C.base);
+    closedEyes(S, 6);                            // 늘 감고 있다
+    S.rect(9, 8, 4, 1, BROWN_D);
+  },
+
+  kadabra(S, C) {
+    S.shaded(16, 16, 5, 4, C.base);
+    blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(7, 13, 8, 4, BROWN);                  // 가슴 갑판
+    S.shaded(3, 12, 3, 5, C.base); S.shaded(16, 12, 3, 5, C.base);
+    neck(S, 8, 10, 6, shade(C.base, -0.45));
+    dome(S, 6, 3, 10, 7, C.base, 2);
+    S.taper(3, 0, 5, 5, C.base); S.taper(14, 0, 5, 5, C.base);
+    S.rect(9, 3, 4, 2, RED); S.set(8, 4, RED); S.set(13, 4, RED);  // 이마의 별
+    eyes(S, 6, { h: 1 });
+    S.rect(5, 8, 4, 1, BROWN_D); S.rect(13, 8, 4, 1, BROWN_D);    // 콧수염
+    S.rect(1, 9, 1, 7, STEEL); S.rect(0, 7, 3, 2, STEEL);         // 쥔 스푼
+  },
+
+  alakazam(S, C) {
+    blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(7, 13, 8, 4, BROWN);
+    S.shaded(3, 12, 3, 5, C.base); S.shaded(16, 12, 3, 5, C.base);
+    neck(S, 8, 10, 6, shade(C.base, -0.45));
+    dome(S, 5, 2, 12, 8, C.base, 2);             // 더 큰 머리
+    S.taper(2, 0, 5, 4, C.base); S.taper(15, 0, 5, 4, C.base);
+    eyes(S, 5, { h: 1 });
+    // 길게 늘어진 흰 수염
+    S.taper(4, 7, 4, 5, WHITE); S.taper(14, 7, 4, 5, WHITE);
+    S.rect(0, 8, 1, 8, STEEL); S.rect(0, 6, 3, 2, STEEL);
+    S.rect(21, 8, 1, 8, STEEL); S.rect(19, 6, 3, 2, STEEL);
+  },
+
+  mega_alakazam(S, C) {
+    blob(S, 6, 18, 4, 4, BROWN); blob(S, 12, 18, 4, 4, BROWN);
+    blob(S, 6, 11, 10, 7, C.base);
+    S.rect(7, 13, 8, 4, BROWN);
+    neck(S, 8, 10, 6, shade(C.base, -0.5));
+    dome(S, 5, 2, 12, 8, C.base, 2);
+    eyes(S, 5, { h: 1, sclera: '#fff0c0' });
+    S.taper(3, 7, 5, 6, WHITE); S.taper(14, 7, 5, 6, WHITE);
+    // 스푼 다섯 자루가 떠 있다
+    for (const [x, y] of [[0, 3], [21, 3], [1, 12], [20, 12], [10, 0]]) {
+      S.rect(x, y, 1, 5, STEEL); S.set(x, y, '#e8f0ff');
     }
-    S.shaded(3, 12, 4, 4, BONE_D); S.shaded(15, 12, 4, 4, BONE_D);
-    S.shaded(16, 6, 5, 5, '#6e7480');              // 등의 미사일
-    S.taper(17, 3, 3, 4, '#8e94a0');
-    S.shaded(6, 2, 10, 6, BONE);                   // 해골 머리
-    S.shaded(8, 7, 7, 3, BONE_D);
-    S.rect(7, 4, 3, 3, '#12100c'); S.rect(12, 4, 3, 3, '#12100c');
-    S.set(8, 5, '#ff3b3b'); S.set(13, 5, '#ff3b3b');
-    for (const x of [8, 10, 12, 14]) S.set(x, 10, BONE);
-  },
-  wargreymon(S, C) {
-    humanoid(S, C, { leg: shade(C.base, -0.25), shoulder: GOLD, arm: C.base });
-    S.shaded(4, 10, 4, 4, GOLD);                   // 어깨 갑주
-    S.shaded(14, 10, 4, 4, GOLD);
-    for (const x of [3, 4, 5]) { S.set(x, 14, CLAW); S.set(x + 14, 14, CLAW); }  // 드라몬 킬러
-    S.rect(9, 13, 4, 1, shade(C.attr, 0.3));       // 가슴 문장
-    S.rect(9, 14, 4, 2, C.attr);
-    S.shaded(6, 2, 10, 6, GOLD);                   // 투구
-    S.taper(10, 0, 3, 3, '#fff0c0');               // 정수리 지느러미
-    S.rect(8, 5, 6, 2, '#241c14');
-    S.rect(9, 5, 4, 1, '#ffe066');
-    S.symShaded(1, 6, 5, 6, shade(C.base, 0.1));   // 등의 방패 날개
-  },
-  blackwargreymon(S, C) {
-    SPRITES.wargreymon(S, { ...C, base: C.base, light: C.light, attr: '#c77dff' });
-    // 검은 개체는 갑주 톤만 어둡게 덮어쓴다
-    S.shaded(4, 10, 4, 4, '#4a4f58'); S.shaded(14, 10, 4, 4, '#4a4f58');
-    S.shaded(6, 2, 10, 6, '#4a4f58');
-    S.rect(8, 5, 6, 2, '#12100c'); S.rect(9, 5, 4, 1, '#ff5a3c');
-    S.taper(10, 0, 3, 3, '#6b727d');
   },
 
-  // ══ B라인 ══
-  gabumon(S, C) {
-    // 노란 몸에 파란 줄무늬 모피 후드를 뒤집어쓴 형태
-    S.shaded(7, 17, 3, 5, '#e8d18a'); S.shaded(12, 17, 3, 5, '#e8d18a');
-    S.rect(6, 22, 4, 1, CLAW); S.rect(12, 22, 4, 1, CLAW);
-    S.shaded(7, 11, 8, 7, '#f2dfa2');              // 노란 몸
-    S.shaded(4, 8, 14, 6, C.base);                 // 모피 (몸 위를 덮음)
-    for (const y of [9, 11, 13]) S.rect(5, y, 12, 1, '#2f5d8c');
-    S.shaded(6, 2, 10, 7, C.base);                 // 모피 후드
-    S.taper(4, 3, 4, 4, C.light); S.taper(14, 3, 4, 4, C.light);
-    S.shaded(8, 6, 7, 4, '#f6e6b0');               // 얼굴이 앞으로 나옴
-    S.rect(8, 6, 2, 2, WHITE); S.rect(12, 6, 2, 2, WHITE);
-    S.set(9, 7, '#1b1610'); S.set(13, 7, '#1b1610');
-    S.taper(10, 0, 3, 3, CLAW);                    // 뿔
-  },
-  garurumon(S, C) {
-    beast(S, C, { snout: WHITE, tail: WHITE });
-    for (const x of [5, 9, 13]) S.rect(x, 12, 1, 6, '#1f3a5c');   // 검은 줄무늬
-    S.shaded(3, 13, 16, 2, WHITE);                 // 흰 배
-  },
-  weregarurumon(S, C) {
-    humanoid(S, C, { leg: '#2f4a72', shoulder: C.light, arm: C.base });
-    S.rect(7, 16, 8, 1, '#c0392b');                // 붉은 벨트
-    S.shaded(8, 17, 6, 2, '#2f4a72');              // 청바지
-    S.shaded(6, 2, 10, 6, C.base);                 // 늑대 머리
-    S.shaded(8, 7, 7, 3, WHITE);
-    S.taper(4, 0, 4, 4, C.light); S.taper(14, 0, 4, 4, C.light);
-    S.rect(7, 4, 2, 2, '#ffe066'); S.rect(13, 4, 2, 2, '#ffe066');
-    S.set(8, 5, '#1b1610'); S.set(13, 5, '#1b1610');
-    for (const x of [4, 5, 16, 17]) S.set(x, 17, CLAW);
-  },
-  blackweregarurumon(S, C) {
-    SPRITES.weregarurumon(S, C);
-    S.shaded(8, 7, 7, 3, shade(C.base, 0.25));     // 흰 주둥이 대신 어두운 톤
-    S.rect(7, 4, 2, 2, '#ff5a5a'); S.rect(13, 4, 2, 2, '#ff5a5a');
-    S.rect(7, 16, 8, 1, '#7a2b2b');
-  },
-  metalgarurumon(S, C) {
-    beast(S, C, { snout: STEEL, tail: STEEL });
-    S.shaded(3, 12, 16, 3, STEEL);                 // 금속 등판
-    S.shaded(5, 8, 4, 4, STEEL_D);                 // 등의 미사일
-    S.shaded(10, 8, 4, 4, STEEL_D);
-    S.rect(16, 8, 3, 2, '#12303a');                // 바이저
-    S.rect(17, 8, 2, 1, '#d6f4ff');
-    S.rect(3, 15, 16, 1, shade(STEEL, -0.3));
-  },
-  blackmetalgarurumon(S, C) {
-    SPRITES.metalgarurumon(S, C);
-    S.shaded(3, 12, 16, 3, '#4a5064');
-    S.shaded(5, 8, 4, 4, '#343a4a'); S.shaded(10, 8, 4, 4, '#343a4a');
-    S.rect(16, 8, 3, 2, '#1a1020'); S.rect(17, 8, 2, 1, '#ff6b6b');
+  // ══════════ 랄토스 라인 ══════════
+  ralts(S, C) {
+    S.taper(6, 13, 10, 9, C.base);               // 아래로 퍼진 몸
+    S.shaded(4, 14, 3, 4, C.base); S.shaded(15, 14, 3, 4, C.base);
+    // 얼굴을 덮은 초록 보울 머리 — 랄토스 라인의 표식
+    dome(S, 4, 3, 14, 9, GREEN_H, 3);
+    S.rect(5, 11, 12, 1, shade(GREEN_H, -0.4));
+    S.taper(1, 4, 5, 5, RED, 1);                 // 머리 옆 빨간 뿔
+    S.taper(16, 4, 5, 5, RED, 1);
+    S.rect(9, 12, 4, 1, INKY);
   },
 
-  // ══ C라인 ══
-  patamon(S, C) {
-    // 몸통만 한 커다란 귀 — 이것 하나로 알아본다
-    S.symShaded(0, 6, 6, 9, C.base);
-    S.sym(0, 8, 3, 5, C.light);
-    S.shaded(6, 6, 10, 10, C.base);                // 둥근 몸
-    S.shaded(8, 10, 6, 6, '#ffeec7');              // 크림색 배
-    S.rect(7, 9, 2, 2, WHITE); S.rect(13, 9, 2, 2, WHITE);
-    S.set(8, 10, '#2a1c10'); S.set(13, 10, '#2a1c10');
-    S.set(10, 12, '#c98a4b'); S.set(11, 12, '#c98a4b');   // 작은 입
-    S.shaded(7, 16, 3, 2, '#e8b878'); S.shaded(12, 16, 3, 2, '#e8b878');
-  },
-  angemon(S, C) {
-    angel(S, C, { wings: 3, wing: WHITE, armor: '#e8dfc4', leg: '#d8ceb0' });
-    S.rect(7, 3, 8, 3, '#e2d6b4');                 // 눈을 가린 투구
-    S.rect(7, 4, 8, 1, '#8ecfff');
-    S.shaded(6, 2, 10, 2, '#f0e8cc');
-    S.rect(18, 4, 1, 14, GOLD);                    // 금속 지팡이
-    S.rect(17, 3, 3, 2, '#ffe9a8');
-  },
-  holyangemon(S, C) {
-    angel(S, C, { wings: 4, wing: WHITE, armor: '#f6e9c6', leg: '#e0d4ae' });
-    S.rect(7, 3, 8, 3, '#e9dcb4');
-    S.rect(7, 4, 8, 1, '#ffd166');
-    S.rect(9, 13, 4, 3, C.attr);                   // 가슴 문장
-    S.rect(17, 4, 2, 12, WHITE);                   // 빛의 검
-    S.rect(16, 14, 4, 1, GOLD);
-  },
-  slashangemon(S, C) {
-    angel(S, C, { wings: 2, wing: '#dbe4f0', armor: STEEL, leg: STEEL_D, halo: false });
-    S.shaded(6, 2, 10, 6, STEEL);                  // 각진 투구
-    S.rect(7, 5, 8, 2, '#12303a');
-    S.rect(8, 5, 6, 1, '#ff8a5a');
-    S.rect(2, 8, 2, 12, '#e6edf6');                // 양팔의 검
-    S.rect(18, 8, 2, 12, '#e6edf6');
-  },
-  seraphimon(S, C) {
-    angel(S, C, { wings: 4, wing: '#fff6dd', armor: GOLD, leg: '#d8b040' });
-    S.shaded(6, 2, 10, 6, GOLD);
-    S.rect(7, 5, 8, 2, '#241c14');
-    S.rect(8, 5, 6, 1, '#ffe066');
-    S.taper(10, 0, 3, 3, '#fff6dd');
-    S.rect(9, 13, 4, 3, '#4fc3f7');                // 푸른 보석
-  },
-  dominimon(S, C) {
-    angel(S, C, { wings: 3, wing: '#eef3fb', armor: '#eef3fb', leg: '#c8d2e2' });
-    S.shaded(6, 2, 10, 6, '#eef3fb');
-    S.rect(7, 5, 8, 2, '#1a2430');
-    S.rect(8, 5, 6, 1, '#7fd8ff');
-    S.taper(10, 0, 3, 3, GOLD);
-    S.rect(17, 2, 2, 15, '#f6faff');               // 긴 창검
-    S.rect(16, 15, 4, 1, GOLD);
+  kirlia(S, C) {
+    S.taper(5, 15, 12, 7, C.base);               // 발레복 치마
+    blob(S, 8, 10, 6, 6, C.base);
+    S.shaded(5, 11, 3, 4, C.base); S.shaded(14, 11, 3, 4, C.base);
+    dome(S, 5, 2, 12, 8, GREEN_H, 3);
+    S.rect(6, 9, 10, 1, shade(GREEN_H, -0.4));
+    S.taper(0, 2, 6, 6, RED, 1);
+    S.taper(16, 2, 6, 6, RED, 1);
+    eyes(S, 7, { lx: 8, rx: 12, h: 1, sclera: RED });
   },
 
-  // ══ D라인 ══
-  impmon(S, C) {
-    S.shaded(7, 17, 3, 4, C.dark); S.shaded(12, 17, 3, 4, C.dark);
-    S.shaded(7, 11, 8, 7, C.base);                 // 작은 몸
-    S.shaded(9, 13, 4, 4, '#e6c9ff');
-    S.shaded(4, 12, 3, 4, '#c0392b');              // 빨간 장갑
-    S.shaded(15, 12, 3, 4, '#c0392b');
-    S.rect(7, 10, 8, 1, '#c0392b');                // 빨간 반다나
-    S.shaded(6, 3, 10, 7, C.base);                 // 큰 머리
-    S.taper(3, 0, 4, 5, C.light); S.taper(15, 0, 4, 5, C.light);   // 뾰족 귀
-    S.rect(7, 5, 3, 2, '#7ee87e'); S.rect(12, 5, 3, 2, '#7ee87e'); // 초록 눈
-    S.set(8, 6, '#12100c'); S.set(13, 6, '#12100c');
-    S.rect(9, 8, 4, 1, '#2a1030');                 // 웃는 입
-    S.rect(16, 15, 4, 1, C.dark); S.rect(19, 12, 1, 4, C.dark);    // 꼬리
-  },
-  devimon(S, C) {
-    batWings(S, C.alt);
-    S.shaded(8, 11, 6, 8, C.base);                 // 마르고 긴 몸
-    S.shaded(4, 11, 3, 8, C.base);                 // 아주 긴 팔
-    S.shaded(15, 11, 3, 8, C.base);
-    for (const y of [19, 20]) { S.set(4, y, CLAW); S.set(6, y, CLAW); S.set(15, y, CLAW); S.set(17, y, CLAW); }
-    S.rect(7, 12, 8, 1, '#3a2050'); S.rect(7, 15, 8, 1, '#3a2050');
-    S.shaded(7, 3, 8, 7, shade(C.base, -0.15));    // 머리
-    S.rect(8, 6, 2, 2, '#ff3b3b'); S.rect(12, 6, 2, 2, '#ff3b3b');
-    S.taper(6, 0, 3, 4, C.dark); S.taper(13, 0, 3, 4, C.dark);
-  },
-  skullsatamon(S, C) {
-    batWings(S, C.alt);
-    S.shaded(8, 11, 6, 8, BONE);                   // 뼈 몸통
-    for (const y of [12, 14, 16]) S.rect(9, y, 4, 1, BONE_D);
-    S.shaded(5, 12, 3, 5, BONE_D); S.shaded(14, 12, 3, 5, BONE_D);
-    S.shaded(7, 3, 8, 6, BONE);                    // 해골 머리
-    S.rect(8, 5, 2, 2, '#12100c'); S.rect(12, 5, 2, 2, '#12100c');
-    S.set(8, 6, '#ff8a4a'); S.set(13, 6, '#ff8a4a');
-    S.taper(6, 0, 3, 4, BONE_D); S.taper(13, 0, 3, 4, BONE_D);
-    S.rect(19, 3, 1, 16, BONE_D);                  // 뼈 지팡이
-    S.shaded(18, 1, 3, 3, '#ff8a4a');
-  },
-  wizardmon(S, C) {
-    // 얼굴을 가리는 큰 모자 + 망토
-    S.shaded(6, 12, 10, 8, C.base);                // 망토
-    S.rect(6, 19, 2, 2, C.dark); S.rect(9, 19, 2, 2, C.dark); S.rect(13, 19, 2, 2, C.dark);
-    S.rect(7, 14, 8, 1, '#3a3080');
-    S.shaded(8, 8, 6, 5, shade(C.base, 0.2));      // 얼굴 부위
-    S.rect(9, 10, 2, 2, '#a5f3d0'); S.rect(12, 10, 2, 2, '#a5f3d0');
-    S.taper(5, 1, 12, 8, '#4a3f9e', 1);            // 커다란 뾰족 모자
-    S.rect(4, 8, 14, 2, '#3a3080');                // 모자 챙
-    S.set(6, 3, GOLD); S.set(14, 4, GOLD);         // 모자 장식
-    S.rect(19, 4, 1, 15, '#7a5a32');               // 지팡이
-    S.shaded(18, 2, 3, 3, '#8ee6ff');
-  },
-  demon(S, C) {
-    batWings(S, '#4a1010');
-    S.shaded(6, 11, 10, 9, C.base);                // 거대한 몸
-    S.rect(7, 13, 8, 1, '#2a0808'); S.rect(7, 16, 8, 1, '#2a0808');
-    S.shaded(3, 12, 3, 6, C.base); S.shaded(16, 12, 3, 6, C.base);
-    for (const y of [18, 19]) { S.set(3, y, CLAW); S.set(5, y, CLAW); S.set(16, y, CLAW); S.set(18, y, CLAW); }
-    S.shaded(7, 3, 8, 7, shade(C.base, -0.2));     // 머리
-    S.rect(8, 6, 2, 2, '#ffb03a'); S.rect(12, 6, 2, 2, '#ffb03a');
-    S.taper(4, 0, 4, 5, '#6b1a1a', 1); S.taper(14, 0, 4, 5, '#6b1a1a', 1);  // 굽은 뿔
-  },
-  beelzemon(S, C) {
-    batWings(S, '#3a2166');
-    humanoid(S, C, { leg: '#1e1430', shoulder: '#2f1b52', arm: '#2f1b52' });
-    S.rect(7, 11, 8, 1, '#c0392b');                // 재킷 깃
-    S.rect(9, 12, 4, 6, '#1e1430');                // 지퍼 라인
-    S.shaded(7, 3, 8, 6, '#2f1b52');               // 두건 쓴 머리
-    S.rect(8, 5, 2, 2, '#ff4d6a'); S.rect(12, 5, 2, 2, '#ff4d6a');
-    S.rect(7, 3, 8, 1, '#c0392b');
-    S.shaded(16, 13, 5, 3, '#6b6f7a');             // 총
-    S.rect(20, 14, 1, 1, '#241c14');
-    S.shaded(1, 13, 5, 3, '#6b6f7a');
+  gardevoir(S, C) {
+    S.taper(4, 14, 14, 8, C.base);               // 긴 흰 가운
+    blob(S, 8, 9, 6, 6, C.base);
+    S.shaded(4, 10, 3, 5, C.base); S.shaded(15, 10, 3, 5, C.base);
+    S.rect(9, 11, 4, 4, RED);                    // 가슴을 관통한 빨간 뿔
+    S.rect(10, 10, 2, 1, PINK);
+    dome(S, 6, 1, 10, 7, GREEN_H, 2);
+    S.taper(3, 5, 4, 7, GREEN_H); S.taper(15, 5, 4, 7, GREEN_H);  // 늘어진 머리
+    S.rect(7, 7, 8, 1, shade(GREEN_H, -0.4));
+    eyes(S, 5, { lx: 8, rx: 12, h: 1, sclera: RED });
   },
 
-  // ══ 메가진화 ══
-  omnimon(S, C) {
-    angel(S, C, { wings: 2, wing: '#e8eef8', armor: '#f2f6ff', leg: '#cdd6e6', halo: false });
-    S.shaded(6, 2, 10, 6, '#f2f6ff');              // 흰 기사 투구
-    S.taper(10, 0, 3, 3, GOLD);
-    S.rect(7, 5, 8, 2, '#1a2430');
-    S.rect(8, 5, 6, 1, '#ffd166');
-    S.shaded(1, 11, 6, 4, '#3f6fd8');              // 왼팔 가루루 캐논
-    S.rect(0, 12, 1, 2, '#241c14');
-    S.rect(17, 2, 2, 14, '#f6faff');               // 오른손 그레이 소드
-    S.rect(16, 14, 4, 1, '#c0392b');
-    S.rect(9, 13, 4, 2, C.attr);
+  mega_gardevoir(S, C) {
+    S.taper(2, 13, 18, 9, C.base);               // 더 크게 퍼진 가운
+    S.rect(4, 17, 14, 1, PINK);
+    blob(S, 8, 8, 6, 6, C.base);
+    S.shaded(3, 9, 3, 5, C.base); S.shaded(16, 9, 3, 5, C.base);
+    S.rect(9, 10, 4, 4, RED);
+    dome(S, 6, 0, 10, 7, GREEN_H, 2);
+    S.taper(2, 4, 5, 8, GREEN_H); S.taper(15, 4, 5, 8, GREEN_H);
+    S.rect(7, 6, 8, 1, shade(GREEN_H, -0.4));
+    eyes(S, 4, { lx: 8, rx: 12, h: 1, sclera: RED });
   },
-  omnimon_zwart(S, C) {
-    SPRITES.omnimon(S, C);
-    S.shaded(6, 2, 10, 6, '#3d434e');
-    S.rect(7, 5, 8, 2, '#12100c'); S.rect(8, 5, 6, 1, '#ff5a3c');
-    S.taper(10, 0, 3, 3, '#8a8f98');
-    S.shaded(1, 11, 6, 4, '#454b58');
-    S.rect(17, 2, 2, 14, '#6b727d');
+
+  // ══════════ 토게피 라인 ══════════
+  togepi(S, C) {
+    // 알 껍질을 뒤집어쓴 몸 — 아래가 지그재그로 깨져 있다
+    dome(S, 4, 4, 14, 15, C.base, 3);
+    for (let x = 5; x < 17; x += 2) S.set(x, 18, null);
+    for (const x of [5, 8, 11, 14]) S.taper(x, 1, 4, 4, C.base);  // 머리 뾰족
+    S.taper(6, 12, 4, 3, RED); S.taper(12, 14, 4, 3, BLUE_M);     // 빨강·파랑 삼각
+    S.taper(9, 16, 3, 3, RED);
+    eyes(S, 7, { lx: 6, rx: 13, w: 3, h: 3 });
+    S.rect(9, 11, 4, 1, INKY);
+    S.shaded(2, 18, 4, 3, CREAM); S.shaded(16, 18, 4, 3, CREAM);
   },
-  shakkoumon(S, C) {
-    // 항아리 몸통 + 커다란 외눈
-    S.shaded(4, 9, 14, 11, C.base);
-    S.rect(4, 9, 14, 1, C.light);
-    S.rect(6, 20, 10, 2, shade(C.base, -0.4));
-    S.shaded(0, 10, 4, 4, STEEL); S.shaded(18, 10, 4, 4, STEEL);   // 양옆 팔
-    S.rect(0, 11, 1, 2, '#241c14'); S.rect(21, 11, 1, 2, '#241c14');
-    S.shaded(7, 3, 8, 6, shade(C.base, 0.15));     // 머리
-    S.rect(8, 12, 6, 5, '#12303a');                // 가슴의 큰 눈
-    S.rect(9, 13, 4, 3, '#e6fffb');
-    S.rect(10, 14, 2, 1, '#12303a');
-    S.rect(8, 5, 6, 2, '#12303a');
-    S.rect(9, 5, 4, 1, '#e6fffb');
+
+  togetic(S, C) {
+    S.taper(0, 7, 6, 6, WHITE, 1);               // 작은 날개
+    S.taper(16, 7, 6, 6, WHITE, 1);
+    blob(S, 5, 7, 12, 12, C.base, 2);
+    for (const x of [6, 9, 12]) S.taper(x, 3, 4, 4, C.base);
+    S.taper(6, 12, 4, 3, RED); S.taper(12, 14, 4, 3, BLUE_M);
+    eyes(S, 8, { lx: 7, rx: 12, w: 3, h: 3 });
+    S.rect(9, 12, 4, 1, INKY);
+    S.shaded(6, 18, 4, 3, CREAM); S.shaded(12, 18, 4, 3, CREAM);
   },
-  lordknightmon(S, C) {
-    angel(S, C, { wings: 2, wing: '#ffe1ea', armor: '#ffd0dd', leg: '#e0a8bc', halo: false });
-    S.shaded(5, 9, 4, 5, '#ffd0dd'); S.shaded(13, 9, 4, 5, '#ffd0dd');  // 큰 어깨 갑주
-    S.shaded(6, 2, 10, 6, '#ffd0dd');
-    S.taper(7, 0, 3, 3, '#fff0f4'); S.taper(12, 0, 3, 3, '#fff0f4');
-    S.rect(7, 5, 8, 2, '#5a2030');
-    S.rect(8, 5, 6, 1, '#ff5a8a');
-    S.rect(18, 3, 2, 14, '#fff0f4');               // 리본형 검
-    S.rect(17, 15, 4, 1, GOLD);
+
+  togekiss(S, C) {
+    // 몸통 대부분이 날개 — 비행체 실루엣
+    S.taper(0, 6, 8, 7, WHITE, 1);
+    S.taper(14, 6, 8, 7, WHITE, 1);
+    blob(S, 6, 5, 10, 14, C.base, 2);
+    for (const x of [7, 11]) S.taper(x, 1, 4, 4, C.base);
+    S.taper(6, 11, 4, 3, RED); S.taper(12, 13, 4, 3, BLUE_M);
+    eyes(S, 7, { lx: 7, rx: 12, w: 3, h: 3 });
+    S.rect(9, 11, 4, 1, INKY);
   },
-  lucemon_fm(S, C) {
-    batWings(S, '#3d1466');
-    S.symShaded(0, 12, 5, 4, '#5a1f8e');           // 아래쪽 날개 한 쌍 더
-    S.shaded(7, 11, 8, 8, C.base);
-    for (const y of [13, 16]) S.rect(8, y, 6, 1, '#2a0a44');
-    S.shaded(4, 12, 3, 5, C.base); S.shaded(15, 12, 3, 5, C.base);
-    S.shaded(7, 3, 8, 7, shade(C.base, 0.12));
-    S.rect(8, 6, 2, 2, '#ffd166'); S.rect(12, 6, 2, 2, '#ffd166');
-    S.taper(5, 0, 4, 4, '#7a2bb8', 1); S.taper(13, 0, 4, 4, '#7a2bb8', 1);
-    S.rect(9, 14, 4, 3, '#ff3b6b');                // 붉은 코어
+
+  // ══════════ 고오스 라인 ══════════
+  gastly(S, C) {
+    // 보라 가스가 검은 얼굴 구체를 감싼다
+    const gas = shade(C.base, 0.2);
+    S.taper(0, 3, 22, 4, gas, 1);
+    S.rect(0, 7, 22, 3, gas);
+    S.taper(0, 10, 22, 5, shade(gas, -0.25), -1);
+    for (let x = 1; x < 21; x += 3) S.set(x, 16, shade(gas, -0.4));
+    blob(S, 6, 6, 10, 9, '#241c30', 2);          // 검은 얼굴
+    eyes(S, 8, { lx: 7, rx: 12, w: 3, h: 3 });
+    S.rect(8, 13, 6, 1, '#d05a7a');              // 혀
   },
-  chaosmon(S, C) {
-    // 좌우가 서로 다른 뒤틀린 융합
-    S.shaded(7, 17, 3, 5, '#5a6050'); S.shaded(12, 17, 3, 5, '#3d434e');
-    S.shaded(7, 10, 4, 8, C.base);                 // 왼쪽 절반
-    S.shaded(11, 10, 4, 8, '#6b7280');             // 오른쪽 절반
-    S.symShaded(0, 7, 6, 3, '#7f8a72');            // 금속 날개
-    S.shaded(3, 11, 4, 4, '#8a9480');
-    S.shaded(15, 11, 6, 4, '#9aa4b0');             // 오른팔 대포
-    S.rect(21, 12, 1, 2, '#241c14');
-    S.shaded(7, 3, 8, 6, BONE);                    // 해골 머리
-    S.rect(8, 5, 2, 2, '#12100c'); S.rect(12, 5, 2, 2, '#12100c');
-    S.set(8, 6, '#ff3b6b'); S.set(13, 6, '#ff3b6b');
-    S.taper(5, 0, 4, 4, BONE_D); S.taper(13, 0, 4, 4, BONE_D);
+
+  haunter(S, C) {
+    const gas = shade(C.base, 0.12);
+    blob(S, 4, 3, 14, 13, gas, 3);
+    for (let x = 5; x < 17; x += 3) S.taper(x, 15, 4, 4, shade(gas, -0.4));
+    // 몸에서 떨어져 떠 있는 손 두 개
+    blob(S, 0, 9, 5, 4, gas); blob(S, 17, 9, 5, 4, gas);
+    S.set(0, 13, C.dark); S.set(2, 13, C.dark); S.set(4, 13, C.dark);
+    S.set(17, 13, C.dark); S.set(19, 13, C.dark); S.set(21, 13, C.dark);
+    eyes(S, 6, { lx: 6, rx: 13, w: 3, h: 3 });
+    S.rect(7, 11, 8, 2, WHITE);                  // 이빨
+    for (let x = 8; x < 15; x += 2) S.set(x, 11, C.deep);
   },
-  sakuyamon(S, C) {
-    S.symShaded(0, 6, 5, 4, '#ffe9a8');            // 빛의 날개
-    humanoid(S, C, { leg: '#d8a830', shoulder: '#fff0c2', arm: C.base });
-    S.rect(7, 12, 8, 1, '#fff6dd');
-    S.shaded(6, 2, 10, 7, '#ffe08a');              // 여우 가면
-    S.rect(7, 5, 3, 2, '#ffffff'); S.rect(12, 5, 3, 2, '#ffffff');
-    S.set(8, 6, '#c0392b'); S.set(13, 6, '#c0392b');
-    S.taper(5, 0, 4, 4, '#fff0c2'); S.taper(13, 0, 4, 4, '#fff0c2');   // 여우 귀
-    S.rect(9, 8, 4, 1, '#c0392b');
-    S.rect(19, 3, 1, 16, GOLD);                    // 석장
-    S.rect(18, 1, 3, 2, '#fff3c4');
-    S.set(19, 0, '#fff3c4');
+
+  gengar(S, C) {
+    for (const x of [1, 5, 16, 20]) S.taper(x, 4, 3, 5, C.dark, 1);   // 등의 가시
+    blob(S, 6, 18, 4, 4, C.dark); blob(S, 12, 18, 4, 4, C.dark);
+    blob(S, 4, 9, 14, 10, C.base, 2);
+    S.shaded(1, 11, 4, 4, C.base); S.shaded(17, 11, 4, 4, C.base);
+    dome(S, 3, 2, 16, 9, C.base, 3);             // 넓은 머리
+    S.taper(1, 0, 5, 5, C.dark, 1);              // 뾰족 귀
+    S.taper(16, 0, 5, 5, C.dark, 1);
+    eyes(S, 4, { lx: 5, rx: 14, w: 3, h: 3, sclera: RED, pupil: '#3a0a10' });
+    // 찢어진 웃음 — 팬텀의 얼굴
+    S.rect(5, 8, 12, 3, WHITE);
+    for (let x = 6; x < 17; x += 2) { S.set(x, 8, C.deep); S.set(x + 1, 10, C.deep); }
   },
-  justimon(S, C) {
-    humanoid(S, C, { leg: '#2f6f92', shoulder: '#4aa8d8', arm: C.base });
-    S.rect(8, 12, 6, 4, '#3d8fbb');
-    S.rect(9, 13, 4, 2, '#c8f4ff');
-    S.shaded(6, 2, 10, 6, '#4aa8d8');              // 사이보그 헬멧
-    S.rect(7, 5, 8, 2, '#12303a');
-    S.rect(8, 5, 6, 1, '#c8f4ff');
-    S.rect(12, 0, 1, 3, '#3d8fbb'); S.set(13, 0, '#ff6b4a');   // 안테나
-    S.shaded(16, 8, 4, 4, '#b8ecff');              // 오른팔 저스티스 킥(블레이드)
-    S.rect(19, 4, 2, 9, '#d6f6ff');
-    S.rect(19, 3, 2, 1, '#ffffff');
+
+  mega_gengar(S, C) {
+    for (const x of [0, 4, 17, 21]) S.taper(x, 3, 3, 6, C.deep, 1);
+    blob(S, 6, 18, 4, 4, C.deep); blob(S, 12, 18, 4, 4, C.deep);
+    blob(S, 3, 9, 16, 10, C.base, 2);
+    S.shaded(0, 11, 4, 4, C.base); S.shaded(18, 11, 4, 4, C.base);
+    dome(S, 2, 2, 18, 9, C.base, 3);
+    S.taper(0, 0, 5, 5, C.deep, 1); S.taper(17, 0, 5, 5, C.deep, 1);
+    eyes(S, 4, { lx: 4, rx: 15, w: 3, h: 3, sclera: RED, pupil: '#2a0508' });
+    S.rect(9, 1, 4, 3, RED); S.set(10, 2, '#2a0508');    // 이마의 세 번째 눈
+    S.rect(4, 8, 14, 3, WHITE);
+    for (let x = 5; x < 18; x += 2) { S.set(x, 8, C.deep); S.set(x + 1, 10, C.deep); }
+  },
+
+  // ══════════ 불켜미 라인 ══════════
+  litwick(S, C) {
+    S.taper(8, 0, 6, 6, FLAME_B);                // 파란 불꽃 심지
+    S.taper(9, 1, 4, 4, FLAME_B2);
+    blob(S, 5, 6, 12, 13, C.base, 2);            // 흰 양초 몸
+    // 녹아 흘러내린 촛농
+    S.taper(4, 14, 3, 5, C.base); S.taper(15, 13, 3, 6, C.base);
+    S.rect(5, 18, 12, 2, shade(C.base, -0.22));
+    eyes(S, 10, { lx: 6, rx: 13, w: 3, h: 3, sclera: GOLD, pupil: '#3a2a10' });
+    S.rect(9, 14, 4, 1, shade(C.base, -0.4));
+  },
+
+  lampent(S, C) {
+    S.taper(8, 0, 6, 6, FLAME_B);
+    S.taper(9, 1, 4, 4, FLAME_B2);
+    blob(S, 5, 6, 12, 9, C.base, 2);             // 램프 몸통
+    S.rect(4, 14, 14, 2, shade(C.base, -0.3));   // 램프 테두리
+    S.taper(6, 16, 10, 6, C.base);               // 아래로 뾰족
+    S.shaded(1, 8, 4, 3, C.dark); S.shaded(17, 8, 4, 3, C.dark);
+    eyes(S, 9, { lx: 6, rx: 13, w: 3, h: 3, sclera: GOLD, pupil: '#3a2a10' });
+  },
+
+  chandelure(S, C) {
+    S.taper(8, 0, 6, 5, FLAME_B);
+    S.taper(9, 1, 4, 3, FLAME_B2);
+    blob(S, 6, 4, 10, 8, C.base, 2);
+    S.rect(5, 11, 12, 2, shade(C.base, -0.3));
+    // 세 갈래 촛대 — 끝마다 파란 불꽃
+    S.shaded(0, 10, 5, 3, C.dark); S.shaded(17, 10, 5, 3, C.dark);
+    S.taper(0, 6, 5, 5, FLAME_B); S.taper(17, 6, 5, 5, FLAME_B);
+    S.taper(1, 7, 3, 3, FLAME_B2); S.taper(18, 7, 3, 3, FLAME_B2);
+    S.taper(7, 13, 8, 8, C.base);
+    S.taper(8, 19, 6, 4, FLAME_B);
+    eyes(S, 7, { lx: 7, rx: 12, w: 3, h: 3, sclera: GOLD, pupil: '#3a2a10' });
+  },
+
+  // ══════════ 이상해씨 라인 ══════════
+  bulbasaur(S, C) {
+    for (const x of [4, 8, 13, 17]) blob(S, x, 17, 3, 5, C.dark);
+    blob(S, 3, 11, 16, 7, C.base, 2);            // 네발 몸통
+    blob(S, 7, 5, 10, 8, LEAF, 2);               // 등에 얹힌 초록 구근
+    S.rect(9, 5, 5, 1, shade(LEAF, 0.4));
+    dome(S, 0, 9, 9, 8, C.base, 2);              // 머리 (왼쪽 앞)
+    S.shaded(0, 13, 4, 3, shade(C.base, 0.22));
+    S.taper(1, 7, 4, 3, C.dark); S.taper(6, 7, 4, 3, C.dark);   // 귀
+    eyes(S, 11, { lx: 1, rx: 6, w: 3, h: 3, sclera: RED });
+    for (const [x, y] of [[5, 15], [12, 15], [16, 12]]) S.rect(x, y, 2, 2, shade(C.base, -0.38));
+  },
+
+  ivysaur(S, C) {
+    for (const x of [4, 8, 13, 17]) blob(S, x, 17, 3, 5, C.dark);
+    blob(S, 3, 11, 16, 7, C.base, 2);
+    S.taper(1, 5, 7, 5, LEAF, 1); S.taper(14, 5, 7, 5, LEAF, 1);
+    S.taper(4, 2, 6, 5, LEAF_D, 1); S.taper(12, 2, 6, 5, LEAF_D, 1);
+    blob(S, 8, 2, 6, 7, PINK, 2);                // 분홍 꽃봉오리
+    S.rect(9, 2, 4, 1, shade(PINK, 0.35));
+    dome(S, 0, 10, 9, 7, C.base, 2);
+    S.shaded(0, 13, 4, 3, shade(C.base, 0.22));
+    eyes(S, 11, { lx: 1, rx: 6, w: 3, h: 3, sclera: RED });
+    for (const [x, y] of [[6, 16], [13, 16], [17, 13]]) S.rect(x, y, 2, 2, shade(C.base, -0.38));
+  },
+
+  venusaur(S, C) {
+    // 등을 덮은 커다란 분홍 꽃
+    S.taper(0, 4, 22, 5, LEAF, 1);
+    S.taper(0, 1, 7, 5, LEAF_D, 1); S.taper(15, 1, 7, 5, LEAF_D, 1);
+    blob(S, 5, 0, 12, 6, PINK, 2);
+    S.rect(6, 0, 10, 1, shade(PINK, 0.4));
+    S.rect(9, 2, 4, 3, GOLD);                    // 꽃 중심
+    S.rect(2, 4, 5, 3, PINK_D); S.rect(15, 4, 5, 3, PINK_D);
+    blob(S, 3, 9, 16, 8, C.base, 2);
+    for (const x of [4, 8, 13, 17]) blob(S, x, 16, 3, 6, C.dark);
+    dome(S, 0, 10, 7, 7, C.base, 2);
+    eyes(S, 12, { lx: 0, rx: 4, w: 3, h: 3, sclera: RED });
+    S.rect(0, 16, 5, 1, shade(C.base, -0.38));
+  },
+
+  // ══════════ 메탕 라인 ══════════
+  beldum(S, C) {
+    blob(S, 4, 5, 14, 12, C.base, 3);            // 금속 구체
+    S.rect(6, 5, 10, 1, shade(C.base, 0.48));
+    S.taper(8, 17, 6, 6, C.dark);                // 아래로 뻗은 갈고리
+    S.shaded(1, 8, 4, 4, C.dark); S.shaded(17, 8, 4, 4, C.dark);
+    blob(S, 7, 9, 8, 5, RED);                    // 빨간 외눈
+    S.rect(8, 10, 6, 2, '#ff9a8a');
+    S.rect(8, 9, 6, 1, REDD);
+  },
+
+  metang(S, C) {
+    blob(S, 3, 4, 16, 11, C.base, 3);
+    S.rect(5, 4, 12, 1, shade(C.base, 0.48));
+    // X 자로 갈라진 얼굴판
+    S.rect(4, 9, 14, 1, shade(C.base, -0.48));
+    S.rect(10, 5, 2, 9, shade(C.base, -0.48));
+    blob(S, 5, 6, 4, 3, RED); blob(S, 13, 6, 4, 3, RED);
+    S.set(6, 7, '#ff9a8a'); S.set(14, 7, '#ff9a8a');
+    S.taper(0, 11, 5, 4, C.dark, 1); S.taper(17, 11, 5, 4, C.dark, 1);
+    S.taper(6, 15, 5, 7, C.dark); S.taper(11, 15, 5, 7, C.dark);
+  },
+
+  metagross(S, C) {
+    blob(S, 2, 3, 18, 10, C.base, 3);
+    S.rect(5, 3, 12, 1, shade(C.base, 0.48));
+    // 얼굴을 가르는 십자 — 메타그로스의 표식
+    S.rect(2, 8, 18, 2, shade(C.base, -0.52));
+    S.rect(10, 3, 2, 10, shade(C.base, -0.52));
+    blob(S, 4, 4, 5, 4, RED); blob(S, 13, 4, 5, 4, RED);
+    S.rect(5, 5, 3, 2, '#ff9a8a'); S.rect(14, 5, 3, 2, '#ff9a8a');
+    S.taper(0, 12, 7, 5, C.dark, 1);             // 네 다리
+    S.taper(15, 12, 7, 5, C.dark, 1);
+    S.taper(3, 13, 6, 9, C.base);
+    S.taper(13, 13, 6, 9, C.base);
+  },
+
+  mega_metagross(S, C) {
+    blob(S, 2, 2, 18, 10, C.base, 3);
+    S.rect(2, 7, 18, 2, shade(C.base, -0.52));
+    S.rect(10, 2, 2, 10, shade(C.base, -0.52));
+    blob(S, 4, 3, 5, 4, RED); blob(S, 13, 3, 5, 4, RED);
+    S.rect(5, 4, 3, 2, '#ff9a8a'); S.rect(14, 4, 3, 2, '#ff9a8a');
+    for (const y of [12, 16]) {                  // 팔이 넷 더 붙어 여덟
+      S.taper(0, y, 7, 4, C.dark, 1);
+      S.taper(15, y, 7, 4, C.dark, 1);
+    }
+    S.taper(3, 12, 6, 10, C.base);
+    S.taper(13, 12, 6, 10, C.base);
+    S.rect(9, 13, 4, 3, '#7fd8ff');              // 코어 발광
+  },
+
+  // ══════════ 코일 라인 ══════════
+  magnemite(S, C) {
+    blob(S, 6, 6, 10, 11, C.base, 2);            // 회색 구체
+    S.rect(8, 6, 6, 1, shade(C.base, 0.48));
+    // 좌우 자석 — 빨강/파랑 극
+    S.shaded(1, 8, 5, 4, STEEL_D); S.rect(1, 8, 5, 2, RED);
+    S.shaded(16, 8, 5, 4, STEEL_D); S.rect(16, 10, 5, 2, '#5a8fd0');
+    S.rect(9, 3, 4, 4, STEEL); S.rect(10, 2, 2, 6, STEEL_D);      // 십자 나사
+    S.rect(9, 16, 4, 4, STEEL); S.rect(10, 15, 2, 6, STEEL_D);
+    blob(S, 8, 9, 6, 5, WHITE);                  // 외눈
+    S.rect(9, 10, 4, 3, INKY);
+  },
+
+  magneton(S, C) {
+    // 코일 셋이 삼각으로 뭉친다
+    const unit = (x, y) => {
+      blob(S, x, y, 8, 8, C.base, 2);
+      S.rect(x + 2, y, 4, 1, shade(C.base, 0.48));
+      blob(S, x + 2, y + 3, 5, 4, WHITE);
+      S.rect(x + 3, y + 4, 3, 2, INKY);
+    };
+    unit(0, 12); unit(14, 12); unit(7, 2);
+    S.shaded(0, 9, 4, 3, STEEL_D); S.shaded(18, 9, 4, 3, STEEL_D);
+    S.rect(0, 9, 4, 1, RED); S.rect(18, 11, 4, 1, '#5a8fd0');
+    S.rect(9, 0, 4, 3, STEEL_D);
+    S.rect(5, 8, 4, 2, STEEL_D); S.rect(13, 8, 4, 2, STEEL_D);
+  },
+
+  magnezone(S, C) {
+    S.taper(0, 9, 22, 4, C.base, 1);             // UFO 접시
+    S.rect(2, 9, 18, 1, shade(C.base, 0.45));
+    S.rect(3, 13, 16, 2, shade(C.base, -0.42));
+    dome(S, 5, 3, 12, 7, C.light, 2);            // 상부 돔
+    S.rect(9, 0, 4, 4, STEEL_D);                 // 안테나
+    S.set(10, 0, RED); S.set(11, 0, RED);
+    blob(S, 3, 10, 5, 4, WHITE); S.rect(4, 11, 3, 2, INKY);       // 눈 셋
+    blob(S, 14, 10, 5, 4, WHITE); S.rect(15, 11, 3, 2, INKY);
+    blob(S, 8, 5, 6, 4, RED); S.rect(9, 6, 3, 2, '#ff9a8a');
+    S.shaded(0, 11, 4, 4, STEEL_D); S.shaded(18, 11, 4, 4, STEEL_D);
+    S.rect(0, 11, 4, 1, RED); S.rect(18, 14, 4, 1, '#5a8fd0');
   },
 };
 

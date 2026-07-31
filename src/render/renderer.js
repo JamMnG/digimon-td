@@ -27,8 +27,8 @@ const { cols, rows } = BALANCE.grid;
 
 // ── 팔레트 ──
 // 스테이지 테마에 따라 매 프레임 갈아끼운다. 렌더 계층 전체가 이 하나만 본다.
-let P = THEMES.forest.palette;
-let THEME = THEMES.forest;
+let P = THEMES.kanto_meadow.palette;
+let THEME = THEMES.kanto_meadow;
 
 const LIP = 7;          // 플랫폼 두께(px)
 const LIFT = 7;         // 유닛이 타일에서 떠 있는 높이(px)
